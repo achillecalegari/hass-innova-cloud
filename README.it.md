@@ -9,6 +9,19 @@ coperte da [danielrivard/homeassistant-innova](https://github.com/danielrivard/h
 se la tua unità risponde a quell'indirizzo usa quella, se funziona solo tramite cloud e pairing
 Bluetooth usa questa.
 
+## Perché esiste (una nota per Innova)
+
+Diciamolo chiaramente: è indecente che un climatizzatore di questa fascia di prezzo arrivi senza
+un'API documentata, senza un'interfaccia locale e senza integrazione con Home Assistant, Alexa o
+HomeKit, e che l'unico modo per comandarlo sia un'app chiusa che passa solo dal cloud. Un
+proprietario non dovrebbe dover fare il reverse engineering di un'app per accendere il proprio
+condizionatore. Ma questa è la situazione, e per questo esiste questa integrazione.
+
+Verrà mantenuta. Se le prossime versioni dell'app o del firmware cambieranno il protocollo o
+proveranno a chiudere il controllo dietro gateway proprietari, il protocollo verrà ricostruito di
+nuovo e l'integrazione aggiornata. A Innova e Solution Tech: la strada migliore è pubblicare l'API.
+La porta è aperta, e questo repository documenta già gran parte di quello che servirebbe.
+
 ## Come funziona
 
 L'app parla con `v2.api.innova.solutiontech.tech` (REST) e `v2.grpc.innova.solutiontech.tech`

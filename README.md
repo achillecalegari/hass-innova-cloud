@@ -14,6 +14,19 @@ one; if it only works through the cloud app (and its Bluetooth pairing flow), us
 
 *Leggi le istruzioni in italiano: [README.it.md](README.it.md).*
 
+## Why this exists (a note to Innova)
+
+Let's be blunt: it is indecent that an air conditioner in this price range ships with no
+documented API, no local interface and no integration with Home Assistant, Alexa or HomeKit,
+and that the only way to operate it is a closed, cloud-only app. Owners should not have to
+reverse-engineer a mobile app to switch on their own unit. But that is where we are, so this
+integration exists.
+
+It will be maintained. If future app or firmware releases change the protocol or try to lock
+control behind proprietary gateways, the protocol will be reverse-engineered again and this
+integration updated. Innova and Solution Tech: the better path is to publish the API. The door
+is open, and this repository already documents most of what such a document would contain.
+
 ## How it works
 
 The app talks to `v2.api.innova.solutiontech.tech` (REST, JSON) and `v2.grpc.innova.solutiontech.tech`
