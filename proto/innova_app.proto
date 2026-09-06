@@ -1,0 +1,300 @@
+// Reconstructed from the official "Innova" app (Solution Tech, iOS build 3.2.3).
+// Field numbers come from the SwiftProtobuf name maps embedded in the binary, field types
+// from the Swift reflection metadata. Messages not needed by the integration (BLE
+// provisioning, telemetry logs, butler/modbus, calendars) are only sketched.
+//
+// Transport: gRPC over TLS, host v2.grpc.innova.solutiontech.tech:443,
+// metadata "authorization: Bearer <jwt>" (same JWT as the REST API).
+
+syntax = "proto3";
+
+// ------------------------------------------------------------------ services.app
+
+package services.app;
+
+import "google/protobuf/empty.proto";
+
+service AppService {
+  // Send a request to a gateway (MAC) / node and get its reply.
+  rpc SendDevice(SendDeviceRequest) returns (messages.DeviceMessage.Response);
+  // Live events for every device of a home.
+  rpc SubscribeEvents(SubscribeEventsRequest) returns (stream Event);
+}
+
+message SendDeviceRequest {
+  bytes mac_address = 1;                    // 6 raw bytes
+  uint32 node_id = 2;                       // 0 for the unit itself
+  messages.CloudMessage.Request request = 3;
+}
+
+message SubscribeEventsRequest {
+  bytes home_id = 1;                        // 16 raw UUID bytes (id from GET /app/homes)
+}
+
+message Event {
+  message Device {
+    bytes mac_address = 1;
+    optional uint32 node_id = 2;
+    optional messages.DeviceMessage.Event event = 3;
+  }
+  oneof type { Device device = 1; }
+}
+
+// ------------------------------------------------------------------ messages (envelopes)
+
+package messages;
+
+message CloudMessage {                      // cloud/app -> device
+  message Request {
+    message System {
+      message Reboot {}
+      message UpdateFirmware {}
+      oneof type { Reboot reboot = 1; UpdateFirmware update_firmware = 2; }
+    }
+    oneof type {
+      System system = 1;
+      device.shared.Request shared = 2;
+      device.ac.Request ac = 3;
+      device.butler.Request butler = 4;
+      device.fancoil.Request fancoil = 5;
+      device.thermostat.Request thermostat = 6;
+      device.heatpump.Request heatpump = 7;
+    }
+  }
+  message Telemetry { /* modbus polling config */ }
+  message SerialMessage { /* raw / modbus passthrough */ }
+  uint32 node_id = 1;
+  oneof type { Request request = 2; Telemetry telemetry = 3; SerialMessage serial_message = 4; }
+}
+
+message DeviceMessage {                     // device -> cloud/app
+  message Response {
+    message Error {
+      enum Code { UNSPECIFIED = 0; RESPONSE_TIMEOUT = 1; CACHE_NOT_READY = 2; }
+      Code code = 1;
+      optional string message = 2;
+    }
+    message Device {
+      oneof type {
+        device.shared.Response shared = 1;
+        device.ac.Response ac = 2;
+        device.fancoil.Response fancoil = 3;
+        device.butler.Response butler = 4;
+        device.thermostat.Response thermostat = 5;
+        device.heatpump.Response heatpump = 6;
+      }
+    }
+    message Service { /* serial_message = 1 */ }
+    oneof type { Error error = 1; Device device = 2; Service service = 3; }
+  }
+  message Event {
+    message System {
+      message ConnectionEstablished {}
+      message ConnectionLost {}
+      message ProvisioningCompleted { string name = 1; device.shared.DeviceUid device_uid = 2; /* room_id, firmware_update */ }
+      oneof type { ConnectionEstablished connection_established = 1; ConnectionLost connection_lost = 2; ProvisioningCompleted provisioning_completed = 3; }
+    }
+    message Diagnostic {
+      message LogEvent {
+        enum Level { UNSPECIFIED = 0; DEBUG = 1; INFO = 2; WARNING = 3; ERROR = 4; FATAL = 5; }
+        Level level = 1; optional string tag = 2; string message = 3;
+      }
+      oneof type { LogEvent log = 1; }
+    }
+    message Device {
+      oneof type {
+        device.shared.gateway.Event gateway = 1;
+        device.ac.Event ac = 2;
+        device.fancoil.Event fancoil = 3;
+        device.butler.Event butler = 4;
+        device.thermostat.Event thermostat = 5;
+        device.heatpump.Event heatpump = 6;
+      }
+    }
+    oneof type { System system = 1; Diagnostic diagnostic = 2; Device device = 3; }
+  }
+  uint32 node_id = 1;
+  oneof type {
+    Telemetry telemetry = 2;
+    Response response = 3;
+    Event event = 4;
+    telemetry.ContinuousTelemetryLogs continuous_telemetry_logs = 5;
+    telemetry.DiscreteTelemetryLogs discrete_telemetry_logs = 6;
+    telemetry.EventTelemetryLogs events_telemetry_logs = 7;
+  }
+}
+
+// ------------------------------------------------------------------ messages.device.shared
+
+package messages.device.shared;
+
+message DeviceUid { optional uint32 vendor_id = 1; optional uint32 product_id = 2; optional uint32 hw_revision = 3; }
+message Node { uint32 node_id = 1; DeviceUid device_uid = 2; }
+enum NodeError { NODE_ERROR_UNSPECIFIED = 0; OFFLINE = 1; CACHE_NOT_READY = 2; INTERNAL = 3; }
+message Timestamp { uint32 minutes = 1; uint32 seconds = 2; }
+
+message HvacMode {
+  enum Type { UNSPECIFIED = 0; AUTO = 1; HEAT = 2; COOL = 3; DRY = 4; FAN = 5; }
+  Type value = 1;
+  Type actual_value = 2;          // what the unit is really doing (e.g. in AUTO)
+  repeated Type capabilities = 3;
+}
+
+message FanSpeed {
+  enum Type { UNSPECIFIED = 0; AUTO = 1; MIN = 2; MID = 3; MAX = 4; BOOST = 5; }
+  Type value = 1;
+  repeated Type capabilities = 2;
+}
+
+package messages.device.shared.setpoint;
+message State { float value = 1; float min = 2; float max = 3; float step = 4; }
+message Event { optional float value = 1; optional float min = 2; optional float max = 3; optional float step = 4; }
+
+package messages.device.shared.operation_mode;
+enum Type { UNSPECIFIED = 0; CALENDAR = 1; MANUAL = 2; ANTIFREEZE = 3; }
+message Calendar {
+  enum PresetType { UNSPECIFIED = 0; NIGHT = 1; ECO = 2; COMFORT = 3; AWAY = 4; FREEZE = 5; }
+  message State { PresetType active_preset = 1; }
+  message Configuration { bytes id = 1; string name = 2; repeated Schedule schedules = 3; repeated AirComfortNode air_comfort_nodes = 4; repeated GeneratorNode generator_nodes = 5; }
+}
+message Manual {
+  message Configuration { bool enabled = 1; optional shared.Timestamp until = 2; }
+  message State { optional Configuration configuration = 1; }
+}
+message Antifreeze {
+  message Configuration { bool enabled = 1; float air_temperature_threshold = 2; }
+  message State { optional Configuration configuration = 1; }
+}
+message State { Type active = 1; optional Calendar.State calendar = 2; optional Manual.State manual = 3; optional Antifreeze.State antifreeze = 4; }
+message Event { optional Type active = 1; optional Calendar.State calendar = 2; optional Manual.State manual = 3; optional Antifreeze.State antifreeze = 4; }
+
+package messages.device.shared.gateway;
+message State {
+  message Connection {
+    enum Type { UNSPECIFIED = 0; WIFI = 1; ETHERNET = 2; }
+    message Wifi {
+      enum Band { UNSPECIFIED = 0; BAND_2_4_GHZ = 1; BAND_5_GHZ = 2; BAND_6_GHZ = 3; }
+      message Network { string ssid = 1; int32 rssi = 2; optional uint32 snr = 3; Band band = 4; }
+      optional Network network = 1; repeated Band supported_bands = 2;
+    }
+    message Ethernet {}
+    repeated Type capabilities = 1; optional Wifi wifi = 2; optional Ethernet ethernet = 3;
+  }
+  message Interface { enum Type { UNSPECIFIED = 0; RS485 = 1; UART_TTL = 2; } string name = 1; Type type = 2; }
+  repeated Alarm alarms = 1;
+  uint32 firmware_version_code = 2;
+  optional string serial_number = 3;
+  optional Connection connection = 4;
+  map<uint32, Interface> interfaces = 5;
+}
+message Event { optional Error error = 1; }
+
+package messages.device.shared;
+message Request {
+  message GetState {}
+  message SetNodes { repeated Node nodes = 1; }
+  message SetOperationMode {
+    message Calendar { repeated operation_mode.Calendar.Configuration configurations = 1; optional bytes active_id = 2; }
+    message Manual { map<uint32, operation_mode.Manual.Configuration> nodes = 1; }
+    message Antifreeze { map<uint32, operation_mode.Antifreeze.Configuration> nodes = 1; }
+    oneof type { Calendar calendar = 1; Manual manual = 2; Antifreeze antifreeze = 3; }
+  }
+  oneof type { GetState get_state = 1; SetNodes set_nodes = 2; SetOperationMode set_operation_mode = 3; }
+}
+message Response {
+  message State {
+    message Node {
+      oneof type {
+        ac.State ac = 1; fancoil.State fancoil = 2; thermostat.State thermostat = 3;
+        heatpump.State heatpump = 4; butler.State butler = 5; NodeError error = 6;
+      }
+    }
+    map<uint32, Node> nodes = 1;
+    optional gateway.State gateway = 2;
+  }
+  oneof type { State state = 1; }
+}
+
+// ------------------------------------------------------------------ messages.device.ac
+
+package messages.device.ac;
+message State {
+  uint32 alarms = 1;                                   // bitmask
+  bool power = 2;
+  optional shared.setpoint.State temperature_setpoint = 3;
+  optional shared.HvacMode hvac_mode = 4;
+  optional shared.FanSpeed fan_speed = 5;
+  optional bool flap_swing = 6;
+  float air_temperature = 7;
+  optional float air_humidity = 8;
+  optional bool erv = 9;                               // air exchange
+  optional shared.operation_mode.State operation_mode = 10;
+  optional bool silent_mode = 11;
+}
+message Event {
+  optional uint32 alarms = 1;
+  optional bool power = 2;
+  optional shared.setpoint.Event temperature_setpoint = 3;
+  optional float air_temperature = 4;
+  optional shared.HvacMode.Type hvac_mode = 5;
+  optional shared.FanSpeed.Type fan_speed = 6;
+  optional bool flap_swing = 7;
+  optional bool erv = 8;
+  optional shared.operation_mode.Event operation_mode = 9;
+  optional float air_humidity = 10;
+  optional bool silent_mode = 11;
+}
+message Request {
+  message SetState {
+    optional bool power = 1;
+    optional float temperature_setpoint = 2;
+    optional shared.HvacMode.Type hvac_mode = 3;
+    optional shared.FanSpeed.Type fan_speed = 4;
+    optional bool flap_swing = 5;
+    optional bool erv = 6;
+    optional bool silent_mode = 7;
+  }
+  oneof type { SetState set_state = 1; }
+}
+message Response {}
+
+// ------------------------------------------------------------------ fancoil / thermostat (identical layout)
+
+package messages.device.fancoil;
+message State {
+  uint32 alarms = 1; bool power = 2; optional shared.setpoint.State temperature_setpoint = 3;
+  optional shared.HvacMode hvac_mode = 4; optional shared.FanSpeed fan_speed = 5; optional bool flap_swing = 6;
+  float air_temperature = 7; optional float air_humidity = 8; optional shared.operation_mode.State operation_mode = 9;
+}
+message Event {
+  optional uint32 alarms = 1; optional bool power = 2; optional shared.setpoint.Event temperature_setpoint = 3;
+  optional float air_temperature = 4; optional shared.HvacMode.Type hvac_mode = 5; optional shared.FanSpeed.Type fan_speed = 6;
+  optional bool flap_swing = 7; optional shared.operation_mode.Event operation_mode = 8; optional float air_humidity = 9;
+}
+message Request {
+  message SetState { optional bool power = 1; optional float temperature_setpoint = 2; optional shared.HvacMode.Type hvac_mode = 3; optional shared.FanSpeed.Type fan_speed = 4; optional bool flap_swing = 5; }
+  oneof type { SetState set_state = 1; }
+}
+message Response {}
+// messages.device.thermostat.{State,Event,Request,Response} have exactly the same fields.
+
+// ------------------------------------------------------------------ heatpump (partial)
+
+package messages.device.heatpump;
+message State {
+  uint64 alarms = 1; optional Dhw dhw = 2; optional Zone zone1 = 3; optional Zone zone2 = 4;
+  common.ClimaticCurve heating_curve = 5; common.ClimaticCurve cooling_curve = 6; optional shared.HvacMode hvac_mode = 7;
+  common.LoadType active_load = 8; optional float outdoor_temperature = 9; optional float water_pressure = 10;
+  optional common.SilentMode silent_mode = 11; optional common.LoadType load_priority = 12; optional shared.operation_mode.State operation_mode = 13;
+  message Dhw { bool power = 1; float setpoint = 2; float current_setpoint = 3; float water_temperature = 4; optional common.DhwBoost boost = 5; }
+  message Zone { bool power = 1; float heating_setpoint = 2; float cooling_setpoint = 3; float current_setpoint = 4; float water_temperature = 5; }
+}
+message Request {
+  message SetState {
+    message Dhw { optional bool power = 1; optional float setpoint = 2; optional bool boost = 3; }
+    message Zone { optional bool power = 1; optional float heating_setpoint = 2; optional float cooling_setpoint = 3; }
+    optional Dhw dhw = 1; optional Zone zone1 = 2; optional Zone zone2 = 3; optional shared.HvacMode.Type hvac_mode = 4;
+    optional common.SilentMode.Level silent_mode = 5; optional common.LoadType load_priority = 6;
+  }
+  oneof type { SetState set_state = 1; }
+}

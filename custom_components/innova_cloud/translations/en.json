@@ -1,0 +1,71 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Innova Cloud",
+        "description": "Sign in with the account you use in the Innova app.",
+        "menu_options": {
+          "credentials": "Email and password",
+          "token": "Session token (advanced)"
+        }
+      },
+      "credentials": {
+        "title": "Innova account",
+        "description": "Use the email and password of your Innova app account. If you signed up with Google or Apple, first set a password with \"Forgot password\" in the app, or use a session token instead.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "token": {
+        "title": "Session token",
+        "description": "Paste the JWT bearer token used by the Innova app (see the README for how to obtain it). Tokens are valid for about one year.",
+        "data": {
+          "token": "Token"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid credentials or token",
+      "cannot_connect": "Could not reach the Innova cloud"
+    },
+    "abort": {
+      "already_configured": "This account is already configured",
+      "reauth_successful": "Re-authentication was successful"
+    }
+  },
+  "entity": {
+    "climate": {
+      "innova": {
+        "state_attributes": {
+          "fan_mode": {
+            "state": {
+              "boost": "Boost"
+            }
+          }
+        }
+      }
+    },
+    "sensor": {
+      "air_temperature": { "name": "Room temperature" },
+      "outdoor_temperature": { "name": "Outdoor temperature" },
+      "air_humidity": { "name": "Humidity" },
+      "wifi_rssi": { "name": "Wi-Fi signal" },
+      "alarms": { "name": "Alarms" },
+      "operation_mode": {
+        "name": "Operation mode",
+        "state": {
+          "calendar": "Schedule",
+          "manual": "Manual",
+          "antifreeze": "Antifreeze",
+          "unspecified": "Unknown"
+        }
+      }
+    },
+    "switch": {
+      "silent_mode": { "name": "Silent mode" },
+      "erv": { "name": "Air exchange" },
+      "manual_mode": { "name": "Manual override" }
+    }
+  }
+}

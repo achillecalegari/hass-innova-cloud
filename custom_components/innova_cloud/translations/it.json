@@ -1,0 +1,71 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Innova Cloud",
+        "description": "Accedi con l'account che usi nell'app Innova.",
+        "menu_options": {
+          "credentials": "Email e password",
+          "token": "Token di sessione (avanzato)"
+        }
+      },
+      "credentials": {
+        "title": "Account Innova",
+        "description": "Usa email e password dell'account dell'app Innova. Se ti sei registrato con Google o Apple, imposta prima una password con \"Password dimenticata\" nell'app, oppure usa un token di sessione.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "token": {
+        "title": "Token di sessione",
+        "description": "Incolla il token JWT usato dall'app Innova (nel README trovi come ricavarlo). I token durano circa un anno.",
+        "data": {
+          "token": "Token"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Credenziali o token non validi",
+      "cannot_connect": "Impossibile raggiungere il cloud Innova"
+    },
+    "abort": {
+      "already_configured": "Questo account e' gia' configurato",
+      "reauth_successful": "Nuova autenticazione riuscita"
+    }
+  },
+  "entity": {
+    "climate": {
+      "innova": {
+        "state_attributes": {
+          "fan_mode": {
+            "state": {
+              "boost": "Boost"
+            }
+          }
+        }
+      }
+    },
+    "sensor": {
+      "air_temperature": { "name": "Temperatura ambiente" },
+      "outdoor_temperature": { "name": "Temperatura esterna" },
+      "air_humidity": { "name": "Umidita'" },
+      "wifi_rssi": { "name": "Segnale Wi-Fi" },
+      "alarms": { "name": "Allarmi" },
+      "operation_mode": {
+        "name": "Modalita' operativa",
+        "state": {
+          "calendar": "Programmazione",
+          "manual": "Manuale",
+          "antifreeze": "Antigelo",
+          "unspecified": "Sconosciuta"
+        }
+      }
+    },
+    "switch": {
+      "silent_mode": { "name": "Modalita' silenziosa" },
+      "erv": { "name": "Ricambio aria" },
+      "manual_mode": { "name": "Forzatura manuale" }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "domain": "innova_cloud",
+  "name": "Innova Cloud",
+  "codeowners": ["@achillecalegari"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/achillecalegari/hass-innova-cloud",
+  "integration_type": "hub",
+  "iot_class": "cloud_push",
+  "issue_tracker": "https://github.com/achillecalegari/hass-innova-cloud/issues",
+  "loggers": ["custom_components.innova_cloud"],
+  "requirements": ["grpcio>=1.60.0"],
+  "version": "0.1.0"
+}
