@@ -327,7 +327,7 @@ def test_alarm_descriptions():
     from api.alarms import describe_alarms
 
     assert describe_alarms("ac", 0) == []
-    assert describe_alarms("ac", (1 << 0) | (1 << 9), "en") == ["Room probe fault (display E1)", "Condensate water alarm (display F2)"]
+    assert describe_alarms("ac", (1 << 0) | (1 << 9), "en") == ["Room probe failure (display E1)", "Condensate water alarm (display F2)"]
     assert describe_alarms("fancoil", 1 << 10, "it")[0].startswith("Manutenzione filtro")
     assert describe_alarms("ac", 1 << 40) == ["Alarm 40"]
 
