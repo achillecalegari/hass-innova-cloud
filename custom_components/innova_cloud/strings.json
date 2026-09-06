@@ -3,10 +3,9 @@
     "step": {
       "user": {
         "title": "Innova Cloud",
-        "description": "Sign in with the account you use in the Innova app.",
-        "menu_options": {
-          "credentials": "Email and password",
-          "token": "Session token (advanced)"
+        "description": "Pick the app you use. Innova's cloud is white-labelled for other brands: each uses the same platform on its own tenant.",
+        "data": {
+          "brand": "App / brand"
         }
       },
       "credentials": {
@@ -22,6 +21,22 @@
         "description": "Paste the JWT bearer token used by the Innova app (see the README for how to obtain it). Tokens are valid for about one year.",
         "data": {
           "token": "Token"
+        }
+      },
+      "custom_hosts": {
+        "title": "Custom cloud hosts",
+        "description": "For a tenant not in the list: REST base URL (e.g. https://v2.api.<brand>.solutiontech.tech) and gRPC host (e.g. v2.grpc.<brand>.solutiontech.tech).",
+        "data": {
+          "rest_base": "REST base URL",
+          "grpc_host": "gRPC host"
+        }
+      },
+      "auth": {
+        "title": "Sign in",
+        "description": "Sign in with the account you use in the app.",
+        "menu_options": {
+          "credentials": "Email and password",
+          "token": "Session token (advanced)"
         }
       }
     },
@@ -82,6 +97,19 @@
       },
       "manual_mode": {
         "name": "Manual override"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Innova Cloud options",
+        "data": {
+          "poll_minutes": "Full state refresh interval (minutes)"
+        },
+        "data_description": {
+          "poll_minutes": "Live changes arrive through the event stream; this is only the safety-net poll. 10 minutes is plenty."
+        }
       }
     }
   }

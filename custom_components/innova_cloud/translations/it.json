@@ -3,10 +3,9 @@
     "step": {
       "user": {
         "title": "Innova Cloud",
-        "description": "Accedi con l'account che usi nell'app Innova.",
-        "menu_options": {
-          "credentials": "Email e password",
-          "token": "Token di sessione (avanzato)"
+        "description": "Scegli l'app che usi. Il cloud Innova e' rivenduto ad altri marchi: stessa piattaforma, tenant diverso.",
+        "data": {
+          "brand": "App / marchio"
         }
       },
       "credentials": {
@@ -22,6 +21,22 @@
         "description": "Incolla il token JWT usato dall'app Innova (nel README trovi come ricavarlo). I token durano circa un anno.",
         "data": {
           "token": "Token"
+        }
+      },
+      "custom_hosts": {
+        "title": "Host cloud personalizzati",
+        "description": "Per un tenant non in elenco: URL base REST (es. https://v2.api.<marchio>.solutiontech.tech) e host gRPC (es. v2.grpc.<marchio>.solutiontech.tech).",
+        "data": {
+          "rest_base": "URL base REST",
+          "grpc_host": "Host gRPC"
+        }
+      },
+      "auth": {
+        "title": "Accesso",
+        "description": "Accedi con l'account che usi nell'app.",
+        "menu_options": {
+          "credentials": "Email e password",
+          "token": "Token di sessione (avanzato)"
         }
       }
     },
@@ -82,6 +97,19 @@
       },
       "manual_mode": {
         "name": "Forzatura manuale"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opzioni Innova Cloud",
+        "data": {
+          "poll_minutes": "Intervallo di rilettura completa (minuti)"
+        },
+        "data_description": {
+          "poll_minutes": "Le modifiche arrivano dal flusso eventi; questa e' solo la rilettura di sicurezza. 10 minuti bastano."
+        }
       }
     }
   }

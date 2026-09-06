@@ -110,6 +110,18 @@ Copy `custom_components/innova_cloud` into `<config>/custom_components/` and res
 
 The integration creates one device per unit, named as in the app, with the room as suggested area.
 
+## Other brands (white-label apps)
+
+The Innova cloud is white-labelled: Panasonic **Aquarea Home**, **DiffusApp** (STG / Diffusalp),
+**Rhoss Tema** and **Etherma Fire+Ice 2** use the same platform on their own tenant
+(`v2.api.<brand>.solutiontech.tech`). Pick the brand in the first step of the setup; for a tenant
+not in the list choose *Custom hosts*. The message schema is the same for all of them.
+
+## Options
+
+*Settings → Devices & services → Innova Cloud → Configure*: interval of the full state refresh
+(default 10 minutes). Live changes arrive through the event stream regardless.
+
 ## Getting a session token (optional)
 
 Only needed if you prefer not to set a password. The token is the `Authorization: Bearer …`
@@ -155,9 +167,7 @@ logger:
 
 Developed on two Innova units (vendor 1, product 1, hw 1, serials `IN…`) paired with app 3.2.3.
 Fan coils and thermostats share the same message layout and should work; heat pumps are read‑only.
-The same cloud platform is white‑labelled for other brands (Panasonic Aquarea Home, Rhoss Tema,
-Etherma FireIce 2, Immergas, Diffus App): the REST base URL and gRPC host are configurable in the
-config entry data (`rest_base`, `grpc_host`) should you want to try them.
+The same cloud platform is white‑labelled for other brands: see *Other brands* above.
 
 ## Disclaimer
 

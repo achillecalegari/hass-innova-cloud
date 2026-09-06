@@ -1,0 +1,116 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Innova Cloud",
+        "description": "Wähle die App, die du benutzt. Die Innova-Cloud wird auch unter anderen Marken angeboten: gleiche Plattform, eigener Mandant.",
+        "data": {
+          "brand": "App / Marke"
+        }
+      },
+      "custom_hosts": {
+        "title": "Eigene Cloud-Hosts",
+        "description": "Für einen Mandanten, der nicht in der Liste steht: REST-Basis-URL (z. B. https://v2.api.<marke>.solutiontech.tech) und gRPC-Host (z. B. v2.grpc.<marke>.solutiontech.tech).",
+        "data": {
+          "rest_base": "REST-Basis-URL",
+          "grpc_host": "gRPC-Host"
+        }
+      },
+      "auth": {
+        "title": "Anmelden",
+        "description": "Melde dich mit dem Konto an, das du in der App benutzt.",
+        "menu_options": {
+          "credentials": "E-Mail und Passwort",
+          "token": "Sitzungstoken (fortgeschritten)"
+        }
+      },
+      "credentials": {
+        "title": "Konto",
+        "description": "E-Mail-Adresse und Passwort deines App-Kontos. Wenn du dich mit Google oder Apple registriert hast, lege zuerst in der App über \"Passwort vergessen\" ein Passwort fest, oder benutze ein Sitzungstoken.",
+        "data": {
+          "email": "E-Mail",
+          "password": "Passwort"
+        }
+      },
+      "token": {
+        "title": "Sitzungstoken",
+        "description": "Füge das JWT-Bearer-Token der App ein (siehe README). Tokens sind etwa ein Jahr gültig.",
+        "data": {
+          "token": "Token"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Ungültige Zugangsdaten oder ungültiges Token",
+      "cannot_connect": "Die Innova-Cloud ist nicht erreichbar"
+    },
+    "abort": {
+      "already_configured": "Dieses Konto ist bereits eingerichtet",
+      "reauth_successful": "Erneute Anmeldung erfolgreich",
+      "wrong_account": "Das Konto unterscheidet sich von dem, mit dem diese Integration eingerichtet wurde"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Innova Cloud Einstellungen",
+        "data": {
+          "poll_minutes": "Intervall der vollständigen Aktualisierung (Minuten)"
+        },
+        "data_description": {
+          "poll_minutes": "Änderungen kommen über den Ereignisstrom; dies ist nur die Sicherheitsabfrage. 10 Minuten reichen."
+        }
+      }
+    }
+  },
+  "entity": {
+    "climate": {
+      "innova": {
+        "state_attributes": {
+          "fan_mode": {
+            "state": {
+              "boost": "Boost"
+            }
+          }
+        }
+      }
+    },
+    "sensor": {
+      "air_temperature": {
+        "name": "Raumtemperatur"
+      },
+      "outdoor_temperature": {
+        "name": "Außentemperatur"
+      },
+      "air_humidity": {
+        "name": "Luftfeuchtigkeit"
+      },
+      "wifi_rssi": {
+        "name": "WLAN-Signal"
+      },
+      "alarms": {
+        "name": "Alarme"
+      },
+      "operation_mode": {
+        "name": "Betriebsart",
+        "state": {
+          "calendar": "Zeitplan",
+          "manual": "Manuell",
+          "antifreeze": "Frostschutz",
+          "unspecified": "Unbekannt"
+        }
+      }
+    },
+    "switch": {
+      "silent_mode": {
+        "name": "Leiser Modus"
+      },
+      "erv": {
+        "name": "Luftaustausch"
+      },
+      "manual_mode": {
+        "name": "Manuelle Übersteuerung"
+      }
+    }
+  }
+}

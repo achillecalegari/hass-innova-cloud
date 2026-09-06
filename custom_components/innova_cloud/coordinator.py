@@ -5,7 +5,7 @@ Resilience strategy (see docs/ROBUSTNESS.md):
 * live updates come from one ``SubscribeEvents`` stream per home; the stream is restarted with
   exponential backoff that resets as soon as a connection is accepted, and a full state refresh
   is requested after every reconnect so nothing missed during the gap is lost;
-* a full ``get_state`` poll every ``POLL_INTERVAL`` covers anything the stream did not deliver;
+* a full ``get_state`` poll every ``poll_minutes`` (option, default 10) covers anything the stream did not deliver;
   gateways are polled concurrently and a failure on one never affects the others;
 * the home layout is re-read periodically: new homes get a stream, removed homes lose it,
   removed devices are dropped from the state and from the device registry;
@@ -20,7 +20,7 @@ import asyncio
 import logging
 import random
 from collections.abc import Awaitable, Callable
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -47,10 +47,11 @@ from .api.models import (
 from .const import (
     CONF_EMAIL,
     CONF_PASSWORD,
+    CONF_POLL_MINUTES,
     CONF_TOKEN,
+    DEFAULT_POLL_MINUTES,
     DOMAIN,
     HOMES_REFRESH_INTERVAL,
-    POLL_INTERVAL,
     POST_COMMAND_REFRESH_DELAY,
 )
 
@@ -71,7 +72,9 @@ class InnovaCoordinator(DataUpdateCoordinator[dict[str, DeviceState]]):
     config_entry: ConfigEntry
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, rest: InnovaRestClient, grpc_client: InnovaGrpcClient) -> None:
-        super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=POLL_INTERVAL, config_entry=entry)
+        poll_minutes = int(entry.options.get(CONF_POLL_MINUTES, DEFAULT_POLL_MINUTES))
+        super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=timedelta(minutes=poll_minutes), config_entry=entry)
+        self.applied_options = dict(entry.options)
         self.rest = rest
         self.grpc = grpc_client
         self.homes: dict[str, HomeInfo] = {}

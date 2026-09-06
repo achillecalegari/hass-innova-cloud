@@ -90,6 +90,18 @@ In alternativa copia `custom_components/innova_cloud` in `<config>/custom_compon
 
 Viene creato un dispositivo per ogni unità, con il nome dell'app e la stanza come area suggerita.
 
+## Altri marchi (app white-label)
+
+Il cloud Innova è rivenduto ad altri marchi: Panasonic **Aquarea Home**, **DiffusApp** (STG / Diffusalp),
+**Rhoss Tema** ed **Etherma Fire+Ice 2** usano la stessa piattaforma su un proprio tenant
+(`v2.api.<marchio>.solutiontech.tech`). Scegli il marchio nel primo passo della configurazione; per un
+tenant non in elenco scegli *Host personalizzati*. Lo schema dei messaggi è lo stesso per tutti.
+
+## Opzioni
+
+*Impostazioni → Dispositivi e servizi → Innova Cloud → Configura*: intervallo della rilettura completa
+dello stato (10 minuti di default). Le modifiche in tempo reale arrivano comunque dal flusso eventi.
+
 ## Ricavare il token (facoltativo)
 
 Serve solo se non vuoi impostare una password. Il token è l'header `Authorization: Bearer …` che

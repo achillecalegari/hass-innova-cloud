@@ -43,9 +43,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: InnovaConfigEntry) -> bo
     entry.runtime_data = coordinator
     coordinator.start_event_stream()
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    # No update listener on purpose: the coordinator rewrites entry.data when it renews the
-    # session token, and that must not reload the entry.
+    # Reload only when the *options* change. The coordinator rewrites entry.data when it renews the
+    # session token, and that must not reload the entry, so the listener compares options.
+    entry.async_on_unload(entry.add_update_listener(_async_options_updated))
     return True
+
+
+async def _async_options_updated(hass: HomeAssistant, entry: InnovaConfigEntry) -> None:
+    coordinator: InnovaCoordinator = entry.runtime_data
+    if coordinator.applied_options != dict(entry.options):
+        await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: InnovaConfigEntry) -> bool:
