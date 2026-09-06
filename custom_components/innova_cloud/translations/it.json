@@ -25,7 +25,7 @@
       },
       "custom_hosts": {
         "title": "Host cloud personalizzati",
-        "description": "Per un tenant non in elenco: URL base REST (es. https://v2.api.MARCHIO.solutiontech.tech) e host gRPC (es. v2.grpc.MARCHIO.solutiontech.tech).",
+        "description": "Per un tenant non in elenco: URL base REST e host gRPC del cloud di quel marchio (lo schema dei nomi e' nel README).",
         "data": {
           "rest_base": "URL base REST",
           "grpc_host": "Host gRPC"
