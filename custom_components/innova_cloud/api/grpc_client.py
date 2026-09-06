@@ -78,12 +78,20 @@ class InnovaGrpcClient:
         raw = await self.send_device(mac, node_id, messages.request_get_state())
         return messages.parse_state_response(raw)
 
-    async def subscribe_events(self, home_id: bytes) -> AsyncIterator[messages.DeviceEvent]:
-        """Server-streaming ``SubscribeEvents``; yields decoded events until the stream ends."""
+    async def subscribe_events(
+        self, home_id: bytes, on_connected: Callable[[], None] | None = None
+    ) -> AsyncIterator[messages.DeviceEvent]:
+        """Server-streaming ``SubscribeEvents``; yields decoded events until the stream ends.
+
+        ``on_connected`` is called once the server has accepted the stream (before any event).
+        """
         channel = await self._get_channel()
         call = channel.unary_stream(messages.METHOD_SUBSCRIBE_EVENTS, request_serializer=_IDENTITY, response_deserializer=_IDENTITY)
         stream = call(messages.subscribe_events_request(home_id), metadata=self._metadata())
         try:
+            await stream.wait_for_connection()
+            if on_connected is not None:
+                on_connected()
             async for raw in stream:
                 try:
                     event = messages.parse_event(raw)

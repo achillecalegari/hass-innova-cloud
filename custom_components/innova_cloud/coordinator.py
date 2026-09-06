@@ -169,15 +169,16 @@ class InnovaCoordinator(DataUpdateCoordinator[dict[str, DeviceState]]):
         while True:
             try:
                 _LOGGER.debug("Subscribing to events for home %s", home_id)
-                async for event in self.grpc.subscribe_events(uuid_to_bytes(home_id)):
-                    if not self.stream_connected:
-                        self.stream_connected = True
-                        backoff = 5.0
+                async for event in self.grpc.subscribe_events(uuid_to_bytes(home_id), self._on_stream_connected):
                     self._handle_event(event)
                 _LOGGER.debug("Event stream for %s ended", home_id)
+                if self.stream_connected:
+                    backoff = 5.0
+                self.stream_connected = False
             except asyncio.CancelledError:
                 raise
             except InnovaAuthError as err:
+                self.stream_connected = False
                 self.stream_connected = False
                 if await self._try_relogin():
                     continue
@@ -192,6 +193,10 @@ class InnovaCoordinator(DataUpdateCoordinator[dict[str, DeviceState]]):
                 _LOGGER.exception("Unexpected error in event stream")
             await asyncio.sleep(backoff + random.uniform(0, 2))
             backoff = min(backoff * 2, 300.0)
+
+    def _on_stream_connected(self) -> None:
+        self.stream_connected = True
+        _LOGGER.debug("Event stream connected")
 
     def _handle_event(self, event: DeviceEvent) -> None:
         mac = mac_to_str(event.mac) if event.mac else None
@@ -209,7 +214,7 @@ class InnovaCoordinator(DataUpdateCoordinator[dict[str, DeviceState]]):
                 if k.startswith(f"{mac}/"):
                     s.online = event.connection
             if event.connection:
-                self._schedule_refresh(mac)
+                self._schedule_gateway_refresh(mac)
         if event.patch is not None:
             state.apply_event(event.patch)
             state.online = True
@@ -226,9 +231,9 @@ class InnovaCoordinator(DataUpdateCoordinator[dict[str, DeviceState]]):
             self.config_entry.async_start_reauth(self.hass)
             raise
         _LOGGER.debug("SendDevice %s -> %s", device_key, raw.hex() if raw else "<empty>")
-        self._schedule_refresh(dev.mac)
+        self._schedule_gateway_refresh(dev.mac)
 
-    def _schedule_refresh(self, mac: str) -> None:
+    def _schedule_gateway_refresh(self, mac: str) -> None:
         handle = self._refresh_handles.pop(mac, None)
         if handle:
             handle.cancel()
