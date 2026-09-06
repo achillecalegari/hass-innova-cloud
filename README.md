@@ -66,7 +66,8 @@ This integration depends on a cloud the vendor controls. Being honest about the 
 The **EU Data Act** (Regulation 2023/2854, applicable since 12 September 2025) gives users of
 connected products the right to access the data those products generate and to share it with
 third parties, and requires products to be designed so that data is accessible. A vendor
-actively blocking the owner's access to their own unit is on the wrong side of it.
+actively blocking the owner's access to their own unit is on the wrong side of it. For the record: I have the
+pettiness, the time and the money to make a test case out of it.
 
 ## Entities
 

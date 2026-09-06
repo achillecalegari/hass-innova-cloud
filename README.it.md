@@ -55,7 +55,8 @@ L'integrazione dipende da un cloud controllato dal produttore. Con onestà sui m
 Il **Data Act europeo** (Regolamento 2023/2854, applicabile dal 12 settembre 2025) dà a chi usa un
 prodotto connesso il diritto di accedere ai dati che il prodotto genera e di condividerli con terzi,
 e impone che i prodotti siano progettati perché i dati siano accessibili. Un produttore che blocca
-attivamente l'accesso del proprietario alla propria unità sta dalla parte sbagliata.
+attivamente l'accesso del proprietario alla propria unità sta dalla parte sbagliata. Per la cronaca: ho la
+pettiness, il tempo e i soldi per farne un caso d'esempio.
 
 ## Entità
 
