@@ -278,7 +278,9 @@ message Request {
 message Response {}
 // messages.device.thermostat.{State,Event,Request,Response} have exactly the same fields.
 
-// ------------------------------------------------------------------ heatpump (partial)
+// ------------------------------------------------------------------ heatpump
+// heatpump.Event has the same numbering as State with scalar enums (hvac_mode = HvacMode.Type,
+// silent_mode = SilentMode.Level) and every field optional; Dhw/Zone events carry only changed fields.
 
 package messages.device.heatpump;
 message State {

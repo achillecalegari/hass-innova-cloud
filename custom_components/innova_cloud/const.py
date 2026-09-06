@@ -35,7 +35,7 @@ DEFAULT_POLL_MINUTES = 10
 MIN_POLL_MINUTES = 1
 MAX_POLL_MINUTES = 60
 
-PLATFORMS = ["climate", "sensor", "switch"]
+PLATFORMS = ["binary_sensor", "climate", "select", "sensor", "switch", "water_heater"]
 
 # Re-read the home layout (new devices, renamed rooms) from the REST API.
 HOMES_REFRESH_INTERVAL = timedelta(hours=6)

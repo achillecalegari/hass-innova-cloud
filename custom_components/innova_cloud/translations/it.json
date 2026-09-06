@@ -60,6 +60,12 @@
             }
           }
         }
+      },
+      "zone1": {
+        "name": "Zona 1"
+      },
+      "zone2": {
+        "name": "Zona 2"
       }
     },
     "sensor": {
@@ -86,6 +92,12 @@
           "antifreeze": "Antigelo",
           "unspecified": "Sconosciuta"
         }
+      },
+      "water_pressure": {
+        "name": "Pressione acqua"
+      },
+      "dhw_temperature": {
+        "name": "Temperatura acqua sanitaria"
       }
     },
     "switch": {
@@ -97,6 +109,36 @@
       },
       "manual_mode": {
         "name": "Forzatura manuale"
+      }
+    },
+    "binary_sensor": {
+      "alarm": {
+        "name": "Allarme"
+      }
+    },
+    "select": {
+      "silent_level": {
+        "name": "Livello silenzioso",
+        "state": {
+          "off": "Spento",
+          "auto": "Auto",
+          "level_1": "Livello 1",
+          "level_2": "Livello 2",
+          "level_3": "Livello 3",
+          "level_4": "Livello 4"
+        }
+      },
+      "load_priority": {
+        "name": "Priorita' carico",
+        "state": {
+          "dhw": "Acqua sanitaria",
+          "zone": "Zone di riscaldamento/raffrescamento"
+        }
+      }
+    },
+    "water_heater": {
+      "dhw": {
+        "name": "Acqua sanitaria"
       }
     }
   },

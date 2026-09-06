@@ -73,6 +73,12 @@
             }
           }
         }
+      },
+      "zone1": {
+        "name": "Zone 1"
+      },
+      "zone2": {
+        "name": "Zone 2"
       }
     },
     "sensor": {
@@ -99,6 +105,12 @@
           "antifreeze": "Frostschutz",
           "unspecified": "Unbekannt"
         }
+      },
+      "water_pressure": {
+        "name": "Wasserdruck"
+      },
+      "dhw_temperature": {
+        "name": "Warmwassertemperatur"
       }
     },
     "switch": {
@@ -110,6 +122,36 @@
       },
       "manual_mode": {
         "name": "Manuelle Übersteuerung"
+      }
+    },
+    "binary_sensor": {
+      "alarm": {
+        "name": "Alarm"
+      }
+    },
+    "select": {
+      "silent_level": {
+        "name": "Flüsterstufe",
+        "state": {
+          "off": "Aus",
+          "auto": "Auto",
+          "level_1": "Stufe 1",
+          "level_2": "Stufe 2",
+          "level_3": "Stufe 3",
+          "level_4": "Stufe 4"
+        }
+      },
+      "load_priority": {
+        "name": "Lastpriorität",
+        "state": {
+          "dhw": "Warmwasser",
+          "zone": "Heiz-/Kühlzonen"
+        }
+      }
+    },
+    "water_heater": {
+      "dhw": {
+        "name": "Warmwasser"
       }
     }
   }

@@ -259,3 +259,65 @@ def test_truncated_payload_raises():
 
     with pytest.raises(ValueError):
         Message(b"\x0a\x10\x01")
+
+
+def _heatpump_state_bytes() -> bytes:
+    from api.models import LoadType, SilentLevel
+
+    dhw = Writer().bool(1, True).float32(2, 48.0).float32(3, 48.0).float32(4, 45.5).message(5, Writer().message(1, Writer().varint(1, 30).message(2, Writer().varint(1, 100).varint(2, 0))))
+    zone1 = Writer().bool(1, True).float32(2, 35.0).float32(3, 18.0).float32(4, 35.0).float32(5, 33.2)
+    hvac = Writer().varint(1, HvacMode.HEAT).bytes(3, encode_varint(HvacMode.HEAT) + encode_varint(HvacMode.COOL) + encode_varint(HvacMode.AUTO))
+    silent = Writer().varint(1, SilentLevel.LEVEL_AUTO).bytes(2, b"".join(encode_varint(v) for v in (1, 2, 3, 4)))
+    return (
+        Writer().varint(1, 0).message(2, dhw).message(3, zone1).varint(5, 1).varint(6, 2).message(7, hvac).varint(8, LoadType.LOAD_TYPE_ZONE)
+        .float32(9, 7.5).float32(10, 1.8).message(11, silent).varint(12, LoadType.LOAD_TYPE_DHW).finish()
+    )
+
+
+def test_parse_heatpump_state():
+    from api.models import DEVICE_KIND_HEATPUMP, LoadType, SilentLevel
+
+    node = Writer().message(4, _heatpump_state_bytes())  # Node.heatpump = 4
+    entry = Writer().varint(1, 0).message(2, node)
+    raw = Writer().message(2, Writer().message(1, Writer().message(1, Writer().message(2, entry)))).finish()
+    st = messages.parse_state_response(raw).nodes[0]
+    assert st.kind == DEVICE_KIND_HEATPUMP and st.power is True
+    hp = st.heatpump
+    assert hp.dhw.power is True and hp.dhw.setpoint == 48.0 and abs(hp.dhw.water_temperature - 45.5) < 1e-5
+    assert hp.dhw.boost_active is True and hp.dhw.boost_minutes == 30
+    assert hp.zone1.heating_setpoint == 35.0 and hp.zone1.cooling_setpoint == 18.0 and abs(hp.zone1.water_temperature - 33.2) < 1e-5
+    assert hp.zone2 is None
+    assert st.hvac_mode == HvacMode.HEAT and st.hvac_capabilities == [HvacMode.HEAT, HvacMode.COOL, HvacMode.AUTO]
+    assert hp.active_load == LoadType.LOAD_TYPE_ZONE and hp.load_priority == LoadType.LOAD_TYPE_DHW
+    assert abs(hp.outdoor_temperature - 7.5) < 1e-5 and abs(hp.water_pressure - 1.8) < 1e-5
+    assert hp.silent_level == SilentLevel.LEVEL_AUTO and hp.silent_capabilities == [SilentLevel.LEVEL_OFF, SilentLevel.LEVEL_AUTO, SilentLevel.LEVEL_1, SilentLevel.LEVEL_2]
+    assert st.air_temperature == hp.outdoor_temperature
+
+
+def test_heatpump_event_merges_into_state():
+    from api.models import SilentLevel
+
+    node = Writer().message(4, _heatpump_state_bytes())
+    entry = Writer().varint(1, 0).message(2, node)
+    raw = Writer().message(2, Writer().message(1, Writer().message(1, Writer().message(2, entry)))).finish()
+    st = messages.parse_state_response(raw).nodes[0]
+    # event: zone1 heating setpoint 36, silent level off, outdoor temp 6
+    ev = Writer().message(3, Writer().float32(2, 36.0)).varint(11, SilentLevel.LEVEL_OFF).float32(9, 6.0).finish()
+    patch = messages.parse_heatpump_event(Message(ev))
+    st.apply_event(patch)
+    assert st.heatpump.zone1.heating_setpoint == 36.0 and st.heatpump.zone1.cooling_setpoint == 18.0
+    assert st.heatpump.silent_level == SilentLevel.LEVEL_OFF
+    assert st.heatpump.outdoor_temperature == 6.0 and st.heatpump.dhw.setpoint == 48.0
+
+
+def test_heatpump_set_state_request():
+    from api.models import LoadType, SilentLevel
+
+    raw = messages.request_heatpump_set_state(dhw_setpoint=50.0, zone1_power=True, zone1_heating_setpoint=34.5, hvac_mode=HvacMode.HEAT, silent_level=SilentLevel.LEVEL_1, load_priority=LoadType.LOAD_TYPE_DHW)
+    hp = Message(raw).message(7)  # CloudMessage.Request.heatpump = 7
+    set_state = hp.message(1)
+    assert abs(set_state.message(1).float(2) - 50.0) < 1e-6 and not set_state.message(1).has(1)
+    zone1 = set_state.message(2)
+    assert zone1.bool(1) is True and abs(zone1.float(2) - 34.5) < 1e-6 and not zone1.has(3)
+    assert not set_state.has(3)
+    assert set_state.int(4) == HvacMode.HEAT and set_state.int(5) == SilentLevel.LEVEL_1 and set_state.int(6) == LoadType.LOAD_TYPE_DHW

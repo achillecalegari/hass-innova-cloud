@@ -24,7 +24,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .api import InnovaApiError, messages
-from .api.models import CLIMATE_KINDS, DeviceState, FanSpeed, HvacMode
+from .api.models import CLIMATE_KINDS, DEVICE_KIND_HEATPUMP, DeviceState, FanSpeed, HvacMode
 from .const import ATTR_ALARMS, ATTR_CALENDAR_PRESET, ATTR_HVAC_ACTUAL, ATTR_MANUAL_UNTIL, ATTR_NODE_ID, ATTR_OPERATION_MODE
 from .coordinator import InnovaCoordinator
 from .entity import InnovaEntity, async_setup_discovery
@@ -65,6 +65,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     def _factory(device, state):
         if state.kind in CLIMATE_KINDS:
             yield "climate", InnovaClimate(coordinator, device)
+        elif state.kind == DEVICE_KIND_HEATPUMP and state.heatpump is not None:
+            for zone in ("zone1", "zone2"):
+                if getattr(state.heatpump, zone) is not None:
+                    yield zone, InnovaHeatPumpZone(coordinator, device, zone)
 
     async_setup_discovery(entry, coordinator, async_add_entities, _factory)
 
@@ -261,3 +265,124 @@ class InnovaClimate(InnovaEntity, ClimateEntity):
 
     async def async_set_swing_mode(self, swing_mode: str) -> None:
         await self._send(flap_swing=swing_mode == SWING_ON)
+
+
+class InnovaHeatPumpZone(InnovaEntity, ClimateEntity):
+    """One heating/cooling zone of a heat pump (from the app schema, untested on hardware).
+
+    The heat pump has a single hvac mode (heat / cool / auto); each zone has its own power and its
+    heating and cooling setpoints. The zone shows the setpoint of the active mode.
+    """
+
+    _attr_temperature_unit = UnitOfTemperature.CELSIUS
+    _attr_precision = PRECISION_HALVES
+    _attr_target_temperature_step = 0.5
+    _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF
+    _attr_min_temp = 5.0
+    _attr_max_temp = 60.0
+
+    def __init__(self, coordinator: InnovaCoordinator, device, zone: str) -> None:
+        super().__init__(coordinator, device)
+        self._zone = zone
+        self._attr_translation_key = zone
+        self._attr_unique_id = f"{device.key}-{zone}"
+
+    @property
+    def _zone_state(self):
+        state = self.device_state
+        return getattr(state.heatpump, self._zone) if state and state.heatpump else None
+
+    @property
+    def hvac_modes(self) -> list[HVACMode]:
+        state = self.device_state
+        caps = state.hvac_capabilities if state and state.hvac_capabilities else [HvacMode.HEAT, HvacMode.COOL, HvacMode.AUTO]
+        modes = [HVACMode.OFF]
+        for cap in caps:
+            ha_mode = _HVAC_TO_HA.get(cap)
+            if ha_mode and ha_mode not in modes:
+                modes.append(ha_mode)
+        return modes
+
+    @property
+    def hvac_mode(self) -> HVACMode | None:
+        state = self.device_state
+        zone = self._zone_state
+        if state is None or zone is None:
+            return None
+        if not zone.power:
+            return HVACMode.OFF
+        return _HVAC_TO_HA.get(state.hvac_mode) if state.hvac_mode else None
+
+    @property
+    def current_temperature(self) -> float | None:
+        zone = self._zone_state
+        return zone.water_temperature if zone else None
+
+    @property
+    def target_temperature(self) -> float | None:
+        state = self.device_state
+        zone = self._zone_state
+        if zone is None:
+            return None
+        if zone.current_setpoint is not None:
+            return zone.current_setpoint
+        if state and state.hvac_mode == HvacMode.COOL:
+            return zone.cooling_setpoint
+        return zone.heating_setpoint
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        zone = self._zone_state
+        state = self.device_state
+        attrs: dict[str, Any] = {ATTR_NODE_ID: self._device.node_id}
+        if zone:
+            attrs["heating_setpoint"] = zone.heating_setpoint
+            attrs["cooling_setpoint"] = zone.cooling_setpoint
+            attrs["water_temperature"] = zone.water_temperature
+        if state and state.heatpump:
+            attrs["outdoor_temperature"] = state.heatpump.outdoor_temperature
+            attrs["active_load"] = state.heatpump.active_load.name.lower() if state.heatpump.active_load else None
+        return attrs
+
+    async def _send(self, **kwargs: Any) -> None:
+        try:
+            await self.coordinator.async_send_request(self._key, messages.request_heatpump_set_state(**kwargs))
+        except InnovaApiError as err:
+            raise HomeAssistantError(f"Innova command failed: {err}") from err
+        zone = self._zone_state
+        state = self.device_state
+        if zone is not None:
+            if f"{self._zone}_power" in kwargs:
+                zone.power = kwargs[f"{self._zone}_power"]
+            if f"{self._zone}_heating_setpoint" in kwargs:
+                zone.heating_setpoint = kwargs[f"{self._zone}_heating_setpoint"]
+                zone.current_setpoint = zone.heating_setpoint
+            if f"{self._zone}_cooling_setpoint" in kwargs:
+                zone.cooling_setpoint = kwargs[f"{self._zone}_cooling_setpoint"]
+                zone.current_setpoint = zone.cooling_setpoint
+        if state is not None and "hvac_mode" in kwargs:
+            state.hvac_mode = kwargs["hvac_mode"]
+        self.coordinator.notify_optimistic_update()
+
+    async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
+        if hvac_mode == HVACMode.OFF:
+            await self._send(**{f"{self._zone}_power": False})
+            return
+        mode = _HA_TO_HVAC.get(hvac_mode)
+        if mode is None:
+            raise HomeAssistantError(f"Unsupported HVAC mode {hvac_mode}")
+        await self._send(**{f"{self._zone}_power": True, "hvac_mode": mode})
+
+    async def async_turn_on(self) -> None:
+        await self._send(**{f"{self._zone}_power": True})
+
+    async def async_turn_off(self) -> None:
+        await self._send(**{f"{self._zone}_power": False})
+
+    async def async_set_temperature(self, **kwargs: Any) -> None:
+        temperature = kwargs.get(ATTR_TEMPERATURE)
+        if temperature is None:
+            return
+        state = self.device_state
+        key = f"{self._zone}_cooling_setpoint" if state and state.hvac_mode == HvacMode.COOL else f"{self._zone}_heating_setpoint"
+        await self._send(**{key: float(temperature)})

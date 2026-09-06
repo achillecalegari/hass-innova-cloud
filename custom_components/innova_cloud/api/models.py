@@ -53,6 +53,28 @@ class ResponseErrorCode(IntEnum):
     CACHE_NOT_READY = 2
 
 
+class SilentLevel(IntEnum):
+    UNSPECIFIED = 0
+    LEVEL_OFF = 1
+    LEVEL_AUTO = 2
+    LEVEL_1 = 3
+    LEVEL_2 = 4
+    LEVEL_3 = 5
+    LEVEL_4 = 6
+
+
+class LoadType(IntEnum):
+    UNSPECIFIED = 0
+    LOAD_TYPE_DHW = 1
+    LOAD_TYPE_ZONE = 2
+
+
+class ClimaticCurve(IntEnum):
+    UNSPECIFIED = 0
+    CLIMATIC_CURVE_COMPENSATION = 1
+    CLIMATIC_CURVE_DIRECT = 2
+
+
 DEVICE_KIND_AC = "ac"
 DEVICE_KIND_FANCOIL = "fancoil"
 DEVICE_KIND_THERMOSTAT = "thermostat"
@@ -144,6 +166,72 @@ class GatewayState:
 
 
 @dataclass
+class HeatPumpDhw:
+    """heatpump.State.Dhw { bool power=1; float setpoint=2; float current_setpoint=3; float water_temperature=4; DhwBoost boost=5 }"""
+
+    power: bool | None = None
+    setpoint: float | None = None
+    current_setpoint: float | None = None
+    water_temperature: float | None = None
+    boost_active: bool | None = None
+    boost_minutes: int | None = None
+
+    def merge(self, other: "HeatPumpDhw") -> None:
+        for name in self.__dataclass_fields__:  # type: ignore[attr-defined]
+            new = getattr(other, name)
+            if new is not None:
+                setattr(self, name, new)
+
+
+@dataclass
+class HeatPumpZone:
+    """heatpump.State.Zone { bool power=1; float heating_setpoint=2; float cooling_setpoint=3; float current_setpoint=4; float water_temperature=5 }"""
+
+    power: bool | None = None
+    heating_setpoint: float | None = None
+    cooling_setpoint: float | None = None
+    current_setpoint: float | None = None
+    water_temperature: float | None = None
+
+    def merge(self, other: "HeatPumpZone") -> None:
+        for name in self.__dataclass_fields__:  # type: ignore[attr-defined]
+            new = getattr(other, name)
+            if new is not None:
+                setattr(self, name, new)
+
+
+@dataclass
+class HeatPumpState:
+    dhw: HeatPumpDhw | None = None
+    zone1: HeatPumpZone | None = None
+    zone2: HeatPumpZone | None = None
+    heating_curve: ClimaticCurve | None = None
+    cooling_curve: ClimaticCurve | None = None
+    active_load: LoadType | None = None
+    load_priority: LoadType | None = None
+    outdoor_temperature: float | None = None
+    water_pressure: float | None = None
+    silent_level: SilentLevel | None = None
+    silent_capabilities: list[SilentLevel] = field(default_factory=list)
+
+    def merge(self, other: "HeatPumpState") -> None:
+        for name in ("dhw", "zone1", "zone2"):
+            new = getattr(other, name)
+            if new is not None:
+                cur = getattr(self, name)
+                if cur is None:
+                    setattr(self, name, new)
+                else:
+                    cur.merge(new)
+        for name in ("heating_curve", "cooling_curve", "active_load", "load_priority", "outdoor_temperature", "water_pressure", "silent_level"):
+            new = getattr(other, name)
+            if new is not None:
+                setattr(self, name, new)
+        if other.silent_capabilities:
+            self.silent_capabilities = other.silent_capabilities
+
+
+@dataclass
 class DeviceState:
     """Runtime state of one node (AC, fan coil, thermostat...)."""
 
@@ -169,6 +257,7 @@ class DeviceState:
     has_silent_mode: bool = False
     has_humidity: bool = False
     gateway: GatewayState = field(default_factory=GatewayState)
+    heatpump: HeatPumpState | None = None
     last_raw: dict | None = None
 
     def carry_over(self, previous: "DeviceState") -> None:
@@ -204,6 +293,11 @@ class DeviceState:
             self.fan_capabilities = patch.fan_capabilities
         self.setpoint.merge(patch.setpoint)
         self.operation_mode.merge(patch.operation_mode)
+        if patch.heatpump is not None:
+            if self.heatpump is None:
+                self.heatpump = patch.heatpump
+            else:
+                self.heatpump.merge(patch.heatpump)
         for flag in ("has_flap_swing", "has_erv", "has_silent_mode", "has_humidity"):
             if getattr(patch, flag):
                 setattr(self, flag, True)

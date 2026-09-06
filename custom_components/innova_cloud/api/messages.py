@@ -11,6 +11,12 @@ Service: ``services.app.AppService`` on ``v2.grpc.innova.solutiontech.tech:443``
 from __future__ import annotations
 
 from .models import (
+    ClimaticCurve,
+    HeatPumpDhw,
+    HeatPumpState,
+    HeatPumpZone,
+    LoadType,
+    SilentLevel,
     DEVICE_KIND_AC,
     DEVICE_KIND_BUTLER,
     DEVICE_KIND_FANCOIL,
@@ -111,6 +117,41 @@ def request_set_state(
         set_state.bool(6, erv).bool(7, silent_mode)
     device_request = Writer().message(1, set_state)  # oneof type { SetState set_state = 1; }
     return Writer().message(_KIND_TO_REQ[kind], device_request).finish()
+
+
+def request_heatpump_set_state(
+    *,
+    dhw_power: bool | None = None,
+    dhw_setpoint: float | None = None,
+    dhw_boost: bool | None = None,
+    zone1_power: bool | None = None,
+    zone1_heating_setpoint: float | None = None,
+    zone1_cooling_setpoint: float | None = None,
+    zone2_power: bool | None = None,
+    zone2_heating_setpoint: float | None = None,
+    zone2_cooling_setpoint: float | None = None,
+    hvac_mode: HvacMode | int | None = None,
+    silent_level: SilentLevel | int | None = None,
+    load_priority: LoadType | int | None = None,
+) -> bytes:
+    """CloudMessage.Request { heatpump = 7: heatpump.Request { set_state = 1: SetState {...} } }
+
+    ``SetState { Dhw dhw=1; Zone zone1=2; Zone zone2=3; HvacMode.Type hvac_mode=4; SilentMode.Level silent_mode=5; LoadType load_priority=6 }``
+    ``Dhw { bool power=1; float setpoint=2; bool boost=3 }``  ``Zone { bool power=1; float heating_setpoint=2; float cooling_setpoint=3 }``
+    Reconstructed from the app schema; not yet verified on real heat pump hardware.
+    """
+    set_state = Writer()
+    if any(v is not None for v in (dhw_power, dhw_setpoint, dhw_boost)):
+        set_state.message(1, Writer().bool(1, dhw_power).float32(2, dhw_setpoint).bool(3, dhw_boost))
+    if any(v is not None for v in (zone1_power, zone1_heating_setpoint, zone1_cooling_setpoint)):
+        set_state.message(2, Writer().bool(1, zone1_power).float32(2, zone1_heating_setpoint).float32(3, zone1_cooling_setpoint))
+    if any(v is not None for v in (zone2_power, zone2_heating_setpoint, zone2_cooling_setpoint)):
+        set_state.message(3, Writer().bool(1, zone2_power).float32(2, zone2_heating_setpoint).float32(3, zone2_cooling_setpoint))
+    set_state.varint(4, None if hvac_mode is None else int(hvac_mode))
+    set_state.varint(5, None if silent_level is None else int(silent_level))
+    set_state.varint(6, None if load_priority is None else int(load_priority))
+    device_request = Writer().message(1, set_state)
+    return Writer().message(_REQ_HEATPUMP, device_request).finish()
 
 
 def request_set_manual_mode(node_id: int, enabled: bool, until_minutes: int | None = None) -> bytes:
@@ -261,15 +302,62 @@ def _parse_common_state(msg: Message, kind: str) -> DeviceState:
     return state
 
 
+def _hp_dhw(msg: Message | None) -> HeatPumpDhw | None:
+    """heatpump.State.Dhw { bool power=1; float setpoint=2; float current_setpoint=3; float water_temperature=4; DhwBoost boost=5 }
+    DhwBoost { State state=1 { uint32 duration_minutes=1; Timestamp activated_at=2 }; Capabilities capabilities=2 }"""
+    if msg is None:
+        return None
+    dhw = HeatPumpDhw(power=msg.bool(1), setpoint=msg.float(2), current_setpoint=msg.float(3), water_temperature=msg.float(4))
+    boost = msg.message(5)
+    if boost is not None:
+        state = boost.message(1)
+        if state is not None:
+            dhw.boost_minutes = state.int(1)
+            dhw.boost_active = bool(state.int(1)) and state.has(2)
+        else:
+            dhw.boost_active = False
+    return dhw
+
+
+def _hp_zone(msg: Message | None) -> HeatPumpZone | None:
+    """heatpump.State.Zone { bool power=1; float heating_setpoint=2; float cooling_setpoint=3; float current_setpoint=4; float water_temperature=5 }"""
+    if msg is None:
+        return None
+    return HeatPumpZone(power=msg.bool(1), heating_setpoint=msg.float(2), cooling_setpoint=msg.float(3), current_setpoint=msg.float(4), water_temperature=msg.float(5))
+
+
+def _hp_common(msg: Message, hp: HeatPumpState) -> None:
+    hp.dhw = _hp_dhw(msg.message(2))
+    hp.zone1 = _hp_zone(msg.message(3))
+    hp.zone2 = _hp_zone(msg.message(4))
+    hp.heating_curve = _enum(ClimaticCurve, msg.int(5))
+    hp.cooling_curve = _enum(ClimaticCurve, msg.int(6))
+    hp.active_load = _enum(LoadType, msg.int(8))
+    hp.outdoor_temperature = msg.float(9)
+    hp.water_pressure = msg.float(10)
+    hp.load_priority = _enum(LoadType, msg.int(12))
+
+
 def parse_heatpump_state(msg: Message) -> DeviceState:
-    """heatpump.State: only the parts useful as sensors are decoded (outdoor temperature = 9, water pressure = 10)."""
+    """heatpump.State { uint64 alarms=1; Dhw dhw=2; Zone zone1=3; Zone zone2=4; ClimaticCurve heating_curve=5; ClimaticCurve cooling_curve=6;
+    HvacMode hvac_mode=7; LoadType active_load=8; float outdoor_temperature=9; float water_pressure=10; SilentMode silent_mode=11;
+    LoadType load_priority=12; OperationMode.State operation_mode=13 }"""
     state = DeviceState(kind=DEVICE_KIND_HEATPUMP)
     state.alarms = msg.int(1, 0)
+    hp = HeatPumpState()
+    _hp_common(msg, hp)
     hvac = msg.message(7)
     if hvac is not None:
         state.hvac_mode = _enum(HvacMode, hvac.int(1))
         state.hvac_actual = _enum(HvacMode, hvac.int(2))
-    state.air_temperature = msg.float(9)  # outdoor temperature
+        state.hvac_capabilities = [m for m in (_enum(HvacMode, v) for v in hvac.varints(3)) if m]
+    silent = msg.message(11)
+    if silent is not None:
+        hp.silent_level = _enum(SilentLevel, silent.int(1))
+        hp.silent_capabilities = [l for l in (_enum(SilentLevel, v) for v in silent.varints(2)) if l]
+    state.heatpump = hp
+    state.air_temperature = hp.outdoor_temperature
+    state.power = bool((hp.zone1 and hp.zone1.power) or (hp.zone2 and hp.zone2.power) or (hp.dhw and hp.dhw.power))
     state.operation_mode = _operation_mode_state(msg.message(13))
     state.last_raw = _debug(msg)
     return state
@@ -325,10 +413,17 @@ def _parse_common_event(msg: Message, kind: str) -> DeviceState:
 
 
 def parse_heatpump_event(msg: Message) -> DeviceState:
+    """heatpump.Event: same numbering as heatpump.State, with scalar enums: alarms=1; Dhw dhw=2; Zone zone1=3; Zone zone2=4;
+    heating_curve=5; cooling_curve=6; HvacMode.Type hvac_mode=7; active_load=8; outdoor_temperature=9; water_pressure=10;
+    SilentMode.Level silent_mode=11; load_priority=12; OperationMode.Event operation_mode=13 (all optional)."""
     patch = DeviceState(kind=DEVICE_KIND_HEATPUMP)
     patch.alarms = msg.int(1)
+    hp = HeatPumpState()
+    _hp_common(msg, hp)
+    hp.silent_level = _enum(SilentLevel, msg.int(11))
     patch.hvac_mode = _enum(HvacMode, msg.int(7))
-    patch.air_temperature = msg.float(9)
+    patch.heatpump = hp
+    patch.air_temperature = hp.outdoor_temperature
     patch.operation_mode = _operation_mode_state(msg.message(13))
     patch.last_raw = _debug(msg)
     return patch

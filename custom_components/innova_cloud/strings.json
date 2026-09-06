@@ -60,6 +60,12 @@
             }
           }
         }
+      },
+      "zone1": {
+        "name": "Zone 1"
+      },
+      "zone2": {
+        "name": "Zone 2"
       }
     },
     "sensor": {
@@ -86,6 +92,12 @@
           "antifreeze": "Antifreeze",
           "unspecified": "Unknown"
         }
+      },
+      "water_pressure": {
+        "name": "Water pressure"
+      },
+      "dhw_temperature": {
+        "name": "Hot water temperature"
       }
     },
     "switch": {
@@ -97,6 +109,36 @@
       },
       "manual_mode": {
         "name": "Manual override"
+      }
+    },
+    "binary_sensor": {
+      "alarm": {
+        "name": "Alarm"
+      }
+    },
+    "select": {
+      "silent_level": {
+        "name": "Silent level",
+        "state": {
+          "off": "Off",
+          "auto": "Auto",
+          "level_1": "Level 1",
+          "level_2": "Level 2",
+          "level_3": "Level 3",
+          "level_4": "Level 4"
+        }
+      },
+      "load_priority": {
+        "name": "Load priority",
+        "state": {
+          "dhw": "Hot water",
+          "zone": "Heating/cooling zones"
+        }
+      }
+    },
+    "water_heater": {
+      "dhw": {
+        "name": "Hot water"
       }
     }
   },

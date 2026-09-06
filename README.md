@@ -16,10 +16,12 @@ targets the same cloud but through the **v1** endpoints (`api.innova.solutiontec
 `grpc.innova.solutiontech.tech`) that the current app no longer uses; this integration implements
 the v2 API (`v2.api…` / `v2.grpc…`, service `services.app.AppService`) that current firmware
 and app versions require. [buenaonda/innova-farna-ha](https://github.com/buenaonda/innova-farna-ha)
-also uses the v2 API, by polling `get_state`; this integration additionally keeps the live event
-stream open (changes appear within a second), renews the session by itself, exposes the silent
-mode / air exchange / manual override switches and documents the whole protocol and the tooling
-used to recover it. Quick check: if your unit answers on `http://<ip>/api/v/1/status`, use that
+also uses the v2 API, by polling `get_state`; [davidedomotica/ha-innova](https://github.com/davidedomotica/ha-innova)
+and [muscaglar/ha-aquarea-home](https://github.com/muscaglar/ha-aquarea-home) (Panasonic RAC Solo) are two more
+independent v2 implementations. This one keeps the live event stream open (changes appear within a second),
+renews the session by itself, has the brand selector, exposes the silent mode / air exchange / manual override
+switches, the alarm sensor and heat pump entities, and documents the whole protocol and the tooling used to
+recover it; everyone is welcome to converge. Quick check: if your unit answers on `http://<ip>/api/v/1/status`, use that
 one; if it only works through the cloud app (and its Bluetooth pairing flow), use this one.
 
 *Leggi le istruzioni in italiano: [README.it.md](README.it.md).*
@@ -84,8 +86,12 @@ pettiness, the time and the money to make a test case out of it.
 | `switch.<name>_silent_mode` | Air conditioners only. |
 | `switch.<name>_air_exchange` | ERV, only if the unit has it. |
 | `switch.<name>_manual_override` | Turns the schedule off (manual) or on again. When a schedule is active the unit may revert manual changes at the next schedule slot. |
+| `binary_sensor.<name>_alarm` | Problem sensor, on when the alarm bitmask is not zero (diagnostic). |
 
-Heat pumps are detected but only exposed as sensors (outdoor temperature, operation mode) for now.
+**Heat pumps** (from the app schema, not yet verified on real hardware, reports welcome): one `climate` per zone
+(`zone1` / `zone2`, heating or cooling setpoint depending on the heat pump mode, water temperature as current
+temperature), a `water_heater` for the domestic hot water (off / on / performance = boost), sensors for outdoor
+temperature, water pressure and hot water temperature, and selects for the silent level and the load priority.
 
 ## Installation
 
@@ -168,8 +174,9 @@ logger:
 
 ## Supported / tested
 
-Developed on two Innova units (vendor 1, product 1, hw 1, serials `IN…`) paired with app 3.2.3.
-Fan coils and thermostats share the same message layout and should work; heat pumps are read‑only.
+Developed on two Innova units (vendor 1, product 1, hw 1, serials `IN…`) paired with app 3.2.3; the decoder was
+also checked against captures of three other AC units published by other projects. Fan coils and thermostats
+share the same message layout and should work; heat pump support is built from the schema and untested.
 The same cloud platform is white‑labelled for other brands: see *Other brands* above.
 
 ## Disclaimer

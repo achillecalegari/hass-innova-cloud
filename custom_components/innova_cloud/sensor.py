@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorEntityDescription, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE, SIGNAL_STRENGTH_DECIBELS_MILLIWATT, EntityCategory, UnitOfTemperature
+from homeassistant.const import PERCENTAGE, SIGNAL_STRENGTH_DECIBELS_MILLIWATT, EntityCategory, UnitOfPressure, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -42,6 +42,26 @@ SENSORS: tuple[InnovaSensorDescription, ...] = (
         suggested_display_precision=1,
         value_fn=lambda s: s.air_temperature,
         exists_fn=lambda s: s.kind == DEVICE_KIND_HEATPUMP,
+    ),
+    InnovaSensorDescription(
+        key="water_pressure",
+        translation_key="water_pressure",
+        device_class=SensorDeviceClass.PRESSURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfPressure.BAR,
+        suggested_display_precision=1,
+        value_fn=lambda s: s.heatpump.water_pressure if s.heatpump else None,
+        exists_fn=lambda s: s.kind == DEVICE_KIND_HEATPUMP and s.heatpump is not None and s.heatpump.water_pressure is not None,
+    ),
+    InnovaSensorDescription(
+        key="dhw_temperature",
+        translation_key="dhw_temperature",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        suggested_display_precision=1,
+        value_fn=lambda s: s.heatpump.dhw.water_temperature if s.heatpump and s.heatpump.dhw else None,
+        exists_fn=lambda s: s.kind == DEVICE_KIND_HEATPUMP and s.heatpump is not None and s.heatpump.dhw is not None,
     ),
     InnovaSensorDescription(
         key="air_humidity",
