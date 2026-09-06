@@ -42,6 +42,24 @@ and [proto/innova_app.proto](proto/innova_app.proto)). The integration:
 
 Everything goes through Innova's cloud: no LAN access to the units is possible with this generation.
 
+## How the vendor could break this, and what protects it
+
+This integration depends on a cloud the vendor controls. Being honest about the failure modes:
+
+| They could… | Likelihood | What is in place |
+| --- | --- | --- |
+| Change the protocol with a new app/firmware release | high, over time | `tools/` rebuilds the schema from the app binary in minutes; a daily workflow opens an issue when a new app version reaches the App Store; the codec ignores unknown fields |
+| Fingerprint non-app clients (user agent, headers, TLS) | medium | REST and gRPC clients send the same identifiers as the app; request rate is far below the app's |
+| Remove email/password login (Google/Apple only) | medium | The session-token path stays available (tokens last a year); a Google sign-in flow can be added |
+| Require device attestation (Firebase App Check / App Attest) on the API | low to medium, this is the only hard block | No clean workaround; the fallback is a token relayed from a real device. This is also the point where the EU Data Act becomes relevant (below) |
+| Suspend accounts that use third-party clients | low | Behaviour mirrors the app; nothing here abuses the service |
+| Lock features behind a paid gateway ("Butler") | possible | The gateway speaks the same protocol (it is one of the node types in the schema) |
+
+The **EU Data Act** (Regulation 2023/2854, applicable since 12 September 2025) gives users of
+connected products the right to access the data those products generate and to share it with
+third parties, and requires products to be designed so that data is accessible. A vendor
+actively blocking the owner's access to their own unit is on the wrong side of it.
+
 ## Entities
 
 | Entity | Notes |

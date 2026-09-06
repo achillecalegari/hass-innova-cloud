@@ -1,0 +1,43 @@
+name: Watch Innova app version
+
+# Early warning: when Solution Tech ships a new app version, the protocol may change.
+# Opens an issue so the schema can be re-checked with tools/ before anything breaks.
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Look up the App Store version
+        id: lookup
+        run: |
+          set -e
+          current=$(curl -fsSL "https://itunes.apple.com/lookup?bundleId=tech.solutiontech.Innova&country=it" | python3 -c 'import json,sys; r=json.load(sys.stdin)["results"]; print(r[0]["version"] if r else "unknown")')
+          known=$(cat docs/APP_VERSION 2>/dev/null || echo none)
+          echo "current=$current" >> "$GITHUB_OUTPUT"
+          echo "known=$known" >> "$GITHUB_OUTPUT"
+      - name: Open an issue and record the new version
+        if: steps.lookup.outputs.current != steps.lookup.outputs.known && steps.lookup.outputs.current != 'unknown'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CURRENT: ${{ steps.lookup.outputs.current }}
+          KNOWN: ${{ steps.lookup.outputs.known }}
+        run: |
+          set -e
+          gh issue create --title "Innova app $CURRENT released (was $KNOWN): re-check the protocol" \
+            --body "The App Store now lists Innova app version $CURRENT (previously $KNOWN). Install it, run the scripts in tools/ and compare with proto/innova_app.proto and docs/PROTOCOL.md; then test with scripts/innova_cli.py." \
+            --label protocol || true
+          echo "$CURRENT" > docs/APP_VERSION
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/APP_VERSION
+          git commit -m "Record Innova app version $CURRENT" || exit 0
+          git push

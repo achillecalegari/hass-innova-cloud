@@ -21,6 +21,9 @@ from .models import DeviceInfo, HomeInfo
 DEFAULT_REST_BASE = "https://v2.api.innova.solutiontech.tech"
 DEFAULT_GRPC_HOST = "v2.grpc.innova.solutiontech.tech"
 DEFAULT_GRPC_PORT = 443
+# Same shape as the requests the official iPad/iPhone app sends (CFNetwork default user agent).
+APP_USER_AGENT = "Innova/1 CFNetwork/3826.600.41 Darwin/25.0.0"
+APP_ACCEPT_LANGUAGE = "it-IT"
 
 ERROR_CODE_AUTH = 1302
 ERROR_CODE_INVALID_CREDENTIALS = 1304
@@ -88,7 +91,7 @@ class InnovaRestClient:
     # -- low level ---------------------------------------------------------------------
 
     async def _request(self, method: str, path: str, *, json_body: Any = None, auth: bool = True) -> Any:
-        headers = {"Accept": "application/json; charset=utf-8"}
+        headers = {"Accept": "application/json; charset=utf-8", "Accept-Language": APP_ACCEPT_LANGUAGE, "User-Agent": APP_USER_AGENT}
         if auth:
             if not self.token:
                 raise InnovaAuthError("no token")

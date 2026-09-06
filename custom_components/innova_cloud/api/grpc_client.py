@@ -44,6 +44,8 @@ class InnovaGrpcClient:
                         ("grpc.keepalive_permit_without_calls", 1),
                         ("grpc.http2.max_pings_without_data", 0),
                         ("grpc.enable_retries", 0),
+                        # Look like the official app (grpc-swift 2 client).
+                        ("grpc.primary_user_agent", "grpc-swift-nio/2.2.0"),
                     ],
                 )
             return self._channel

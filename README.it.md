@@ -31,6 +31,24 @@ L'integrazione legge case, stanze e dispositivi dalla REST, chiede lo stato comp
 tiene aperto un **flusso di eventi gRPC** (le modifiche fatte da app, telecomando o pannello arrivano
 in Home Assistant entro un secondo) e invia i comandi con `SendDevice`.
 
+## Come potrebbero bloccarla, e cosa la protegge
+
+L'integrazione dipende da un cloud controllato dal produttore. Con onestà sui modi in cui può rompersi:
+
+| Potrebbero… | Probabilità | Cosa c'è in campo |
+| --- | --- | --- |
+| Cambiare protocollo con una nuova app o firmware | alta, nel tempo | `tools/` ricostruisce lo schema dal binario dell'app in minuti; un workflow giornaliero apre una issue quando esce una nuova versione sull'App Store; il codec ignora i campi sconosciuti |
+| Riconoscere i client non-app (user agent, header, TLS) | media | REST e gRPC usano gli stessi identificativi dell'app; il ritmo di richieste è molto sotto quello dell'app |
+| Togliere il login email/password (solo Google/Apple) | media | Resta la via del token di sessione (dura un anno); si può aggiungere il flusso Google |
+| Richiedere l'attestazione del dispositivo (Firebase App Check / App Attest) | medio-bassa, è l'unico blocco vero | Nessuna via pulita; il ripiego è un token passato da un dispositivo reale. Ed è il punto in cui entra in gioco il Data Act europeo (sotto) |
+| Sospendere gli account che usano client di terze parti | bassa | Il comportamento ricalca l'app; nessun abuso del servizio |
+| Chiudere funzioni dietro un gateway a pagamento ("Butler") | possibile | Il gateway parla lo stesso protocollo (è uno dei tipi di nodo dello schema) |
+
+Il **Data Act europeo** (Regolamento 2023/2854, applicabile dal 12 settembre 2025) dà a chi usa un
+prodotto connesso il diritto di accedere ai dati che il prodotto genera e di condividerli con terzi,
+e impone che i prodotti siano progettati perché i dati siano accessibili. Un produttore che blocca
+attivamente l'accesso del proprietario alla propria unità sta dalla parte sbagliata.
+
 ## Entità
 
 * `climate`: spento / auto / caldo / freddo / deumidificazione / solo ventola, ventola auto / bassa /
