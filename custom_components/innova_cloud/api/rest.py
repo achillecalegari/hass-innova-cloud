@@ -114,6 +114,8 @@ class InnovaRestClient:
                 return data
         except aiohttp.ClientError as err:
             raise InnovaApiError(f"connection error: {err}") from err
+        except TimeoutError as err:
+            raise InnovaApiError(f"timeout calling {path}") from err
 
     # -- public ------------------------------------------------------------------------
 
@@ -139,10 +141,13 @@ class InnovaRestClient:
             home = HomeInfo(id=str(raw.get("id")), name=raw.get("name") or "Home", timezone=raw.get("timezone"))
             for dev in raw.get("devices", []) or []:
                 uid = dev.get("uid") or {}
+                mac = str(dev.get("macAddress") or "").upper()
+                if len(mac.replace(":", "").replace("-", "")) != 12:
+                    continue  # not a controllable unit (or a malformed entry)
                 home.devices.append(
                     DeviceInfo(
                         home_id=home.id,
-                        mac=str(dev.get("macAddress", "")).upper(),
+                        mac=mac,
                         node_id=int(dev.get("nodeId") or 0),
                         name=dev.get("name") or dev.get("macAddress") or "Innova",
                         vendor_id=uid.get("vendorId"),

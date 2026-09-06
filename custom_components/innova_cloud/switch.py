@@ -16,7 +16,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .api import InnovaApiError, messages
 from .api.models import CLIMATE_KINDS, DEVICE_KIND_AC, DeviceInfo, DeviceState, OperationModeType
 from .coordinator import InnovaCoordinator
-from .entity import InnovaEntity
+from .entity import InnovaEntity, async_setup_discovery
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -28,8 +28,9 @@ class InnovaSwitchDescription(SwitchEntityDescription):
 
 
 def _set_manual(state: DeviceState, value: bool) -> None:
+    # The device reports which mode wins (calendar / antifreeze) after a switch-off: only claim MANUAL.
     state.operation_mode.manual_enabled = value
-    state.operation_mode.active = OperationModeType.MANUAL if value else OperationModeType.CALENDAR
+    state.operation_mode.active = OperationModeType.MANUAL if value else None
 
 
 SWITCHES: tuple[InnovaSwitchDescription, ...] = (
@@ -53,7 +54,7 @@ SWITCHES: tuple[InnovaSwitchDescription, ...] = (
         key="manual_mode",
         translation_key="manual_mode",
         entity_category=EntityCategory.CONFIG,
-        is_on_fn=lambda s: s.operation_mode.active == OperationModeType.MANUAL if s.operation_mode.active is not None else s.operation_mode.manual_enabled,
+        is_on_fn=lambda s: (s.operation_mode.active == OperationModeType.MANUAL) if s.operation_mode.active is not None else None,
         exists_fn=lambda s: s.kind in CLIMATE_KINDS and s.operation_mode.active is not None,
         request_fn=lambda d, s, v: messages.request_set_manual_mode(d.node_id, v),
         optimistic_fn=_set_manual,
@@ -63,24 +64,13 @@ SWITCHES: tuple[InnovaSwitchDescription, ...] = (
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     coordinator: InnovaCoordinator = entry.runtime_data
-    known: set[tuple[str, str]] = set()
 
-    def _discover() -> None:
-        new = []
-        for key, device in coordinator.devices.items():
-            state = coordinator.get_state(key)
-            if state is None:
-                continue
-            for description in SWITCHES:
-                if (key, description.key) in known or not description.exists_fn(state):
-                    continue
-                known.add((key, description.key))
-                new.append(InnovaSwitch(coordinator, device, description))
-        if new:
-            async_add_entities(new)
+    def _factory(device, state):
+        for description in SWITCHES:
+            if description.exists_fn(state):
+                yield description.key, InnovaSwitch(coordinator, device, description)
 
-    _discover()
-    entry.async_on_unload(coordinator.async_add_listener(_discover))
+    async_setup_discovery(entry, coordinator, async_add_entities, _factory)
 
 
 class InnovaSwitch(InnovaEntity, SwitchEntity):
@@ -105,7 +95,7 @@ class InnovaSwitch(InnovaEntity, SwitchEntity):
         except InnovaApiError as err:
             raise HomeAssistantError(f"Innova command failed: {err}") from err
         self.entity_description.optimistic_fn(state, value)
-        self.async_write_ha_state()
+        self.coordinator.notify_optimistic_update()
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         await self._set(True)

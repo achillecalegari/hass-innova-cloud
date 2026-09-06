@@ -16,8 +16,9 @@ TO_REDACT = {CONF_TOKEN, CONF_PASSWORD, CONF_EMAIL, "mac", "serial_number", "wif
 
 async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
     coordinator = entry.runtime_data
-    devices = {key: asdict(dev) for key, dev in coordinator.devices.items()}
-    states = {key: asdict(state) for key, state in (coordinator.data or {}).items()}
+    index = {key: f"device_{i}" for i, key in enumerate(coordinator.devices)}
+    devices = {index[key]: asdict(dev) for key, dev in coordinator.devices.items()}
+    states = {index.get(key, f"unlisted_{i}"): asdict(state) for i, (key, state) in enumerate((coordinator.data or {}).items())}
     return async_redact_data(
         {
             "entry": dict(entry.data),

@@ -104,13 +104,19 @@ def iter_fields(buf: bytes) -> Iterator[tuple[int, int, int | bytes]]:
             value, pos = decode_varint(buf, pos)
             yield field, wire, value
         elif wire == WIRE_FIXED64:
+            if pos + 8 > end:
+                raise ValueError("truncated fixed64")
             yield field, wire, buf[pos : pos + 8]
             pos += 8
         elif wire == WIRE_LEN:
             length, pos = decode_varint(buf, pos)
+            if pos + length > end:
+                raise ValueError("truncated length-delimited field")
             yield field, wire, buf[pos : pos + length]
             pos += length
         elif wire == WIRE_FIXED32:
+            if pos + 4 > end:
+                raise ValueError("truncated fixed32")
             yield field, wire, buf[pos : pos + 4]
             pos += 4
         elif wire in (3, 4):  # groups: unsupported but skip gracefully

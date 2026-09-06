@@ -24,10 +24,10 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .api import InnovaApiError, messages
-from .api.models import CLIMATE_KINDS, FanSpeed, HvacMode
+from .api.models import CLIMATE_KINDS, DeviceState, FanSpeed, HvacMode
 from .const import ATTR_ALARMS, ATTR_CALENDAR_PRESET, ATTR_HVAC_ACTUAL, ATTR_MANUAL_UNTIL, ATTR_NODE_ID, ATTR_OPERATION_MODE
 from .coordinator import InnovaCoordinator
-from .entity import InnovaEntity
+from .entity import InnovaEntity, async_setup_discovery
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -61,24 +61,12 @@ _HA_TO_FAN = {value: key for key, value in _FAN_TO_HA.items()}
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     coordinator: InnovaCoordinator = entry.runtime_data
-    known: set[str] = set()
 
-    def _discover() -> None:
-        new = []
-        for key, device in coordinator.devices.items():
-            if key in known:
-                continue
-            state = coordinator.get_state(key)
-            # Only create the climate entity once we know the node kind (AC / fan coil / thermostat).
-            if state is None or state.kind not in CLIMATE_KINDS:
-                continue
-            known.add(key)
-            new.append(InnovaClimate(coordinator, device))
-        if new:
-            async_add_entities(new)
+    def _factory(device, state):
+        if state.kind in CLIMATE_KINDS:
+            yield "climate", InnovaClimate(coordinator, device)
 
-    _discover()
-    entry.async_on_unload(coordinator.async_add_listener(_discover))
+    async_setup_discovery(entry, coordinator, async_add_entities, _factory)
 
 
 class InnovaClimate(InnovaEntity, ClimateEntity):
@@ -148,7 +136,8 @@ class InnovaClimate(InnovaEntity, ClimateEntity):
         actual = state.hvac_actual if state.hvac_actual not in (None, HvacMode.UNSPECIFIED, HvacMode.AUTO) else state.hvac_mode
         if actual in _ACTION:
             return _ACTION[actual]
-        return HVACAction.IDLE if actual == HvacMode.AUTO else None
+        # AUTO without a reported actual mode: the unit does not say whether it heats or cools.
+        return None
 
     @property
     def fan_mode(self) -> str | None:
@@ -219,16 +208,18 @@ class InnovaClimate(InnovaEntity, ClimateEntity):
             await self.coordinator.async_send_request(self._key, messages.request_set_state(kind, **kwargs))
         except InnovaApiError as err:
             raise HomeAssistantError(f"Innova command failed: {err}") from err
-        # Optimistic update until the event / refresh arrives.
+        # Optimistic update until the event / refresh arrives, pushed to every entity of the node.
         if state is not None:
+            patch = DeviceState(kind=state.kind)
             for name, value in kwargs.items():
                 if value is None:
                     continue
                 if name == "temperature_setpoint":
-                    state.setpoint.value = value
-                elif hasattr(state, name):
-                    setattr(state, name, value)
-            self.async_write_ha_state()
+                    patch.setpoint.value = value
+                else:
+                    setattr(patch, name, value)
+            state.apply_event(patch)
+            self.coordinator.notify_optimistic_update()
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         if hvac_mode == HVACMode.OFF:
@@ -254,8 +245,11 @@ class InnovaClimate(InnovaEntity, ClimateEntity):
             if hvac_mode == HVACMode.OFF:
                 payload["power"] = False
             else:
+                mode = _HA_TO_HVAC.get(hvac_mode)
+                if mode is None:
+                    raise HomeAssistantError(f"Unsupported HVAC mode {hvac_mode}")
                 payload["power"] = True
-                payload["hvac_mode"] = _HA_TO_HVAC.get(hvac_mode)
+                payload["hvac_mode"] = mode
         if payload:
             await self._send(**payload)
 

@@ -2,7 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
+
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import callback
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceInfo as HaDeviceInfo
+from homeassistant.helpers.entity import Entity
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .api.models import DeviceInfo, DeviceState
@@ -17,6 +23,39 @@ _KIND_MODEL = {
     "butler": "Butler gateway",
     "unknown": "Device",
 }
+
+
+@callback
+def async_setup_discovery(
+    entry: ConfigEntry,
+    coordinator: InnovaCoordinator,
+    async_add_entities: AddEntitiesCallback,
+    factory: Callable[[DeviceInfo, DeviceState], Iterable[tuple[str, Entity]]],
+) -> None:
+    """Create entities lazily: a node's kind and capabilities are only known once its state arrives.
+
+    ``factory`` returns (slot, entity) pairs for one device; each slot is created at most once.
+    Runs now and again after every coordinator update until every slot exists.
+    """
+    known: set[tuple[str, str]] = set()
+
+    @callback
+    def _discover() -> None:
+        new = []
+        for key, device in coordinator.devices.items():
+            state = coordinator.get_state(key)
+            if state is None or state.kind == "unknown":
+                continue
+            for slot, entity in factory(device, state):
+                if (key, slot) in known:
+                    continue
+                known.add((key, slot))
+                new.append(entity)
+        if new:
+            async_add_entities(new)
+
+    _discover()
+    entry.async_on_unload(coordinator.async_add_listener(_discover))
 
 
 class InnovaEntity(CoordinatorEntity[InnovaCoordinator]):

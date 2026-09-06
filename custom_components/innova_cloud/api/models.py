@@ -171,6 +171,15 @@ class DeviceState:
     gateway: GatewayState = field(default_factory=GatewayState)
     last_raw: dict | None = None
 
+    def carry_over(self, previous: "DeviceState") -> None:
+        """Keep what a fresh full state cannot know: latched capabilities and gateway info."""
+        for flag in ("has_flap_swing", "has_erv", "has_silent_mode", "has_humidity"):
+            if getattr(previous, flag):
+                setattr(self, flag, True)
+        self.gateway = previous.gateway
+        if self.kind == DEVICE_KIND_UNKNOWN and previous.kind != DEVICE_KIND_UNKNOWN:
+            self.kind = previous.kind
+
     def apply_event(self, patch: "DeviceState") -> None:
         """Merge a partial update (an ``Event``) into the full state."""
         for name in (

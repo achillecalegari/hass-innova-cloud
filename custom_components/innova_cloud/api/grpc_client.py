@@ -28,9 +28,12 @@ class InnovaGrpcClient:
         self._target = f"{host}:{port}"
         self._channel: grpc.aio.Channel | None = None
         self._lock = asyncio.Lock()
+        self._closed = False
 
     async def _get_channel(self) -> grpc.aio.Channel:
         async with self._lock:
+            if self._closed:
+                raise InnovaApiError("gRPC client is closed")
             if self._channel is None:
                 self._channel = grpc.aio.secure_channel(
                     self._target,
@@ -53,6 +56,7 @@ class InnovaGrpcClient:
 
     async def close(self) -> None:
         async with self._lock:
+            self._closed = True
             if self._channel is not None:
                 await self._channel.close()
                 self._channel = None

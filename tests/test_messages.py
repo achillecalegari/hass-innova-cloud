@@ -203,3 +203,59 @@ def test_apply_event_merges_partial_update():
     assert full.setpoint.value == 19.5
     assert full.setpoint.min == 16.0  # untouched
     assert full.hvac_mode == HvacMode.COOL  # untouched
+
+
+def test_state_response_without_gateway_block_keeps_gateway_none():
+    node = Writer().message(1, _ac_state_bytes())
+    entry = Writer().varint(1, 0).message(2, node)
+    raw = Writer().message(2, Writer().message(1, Writer().message(1, Writer().message(2, entry)))).finish()
+    parsed = messages.parse_state_response(raw)
+    assert parsed.gateway is None
+    assert parsed.nodes[0].kind == DEVICE_KIND_AC
+
+
+def test_state_response_wrapped_in_device_message_with_node_id_zero_omitted():
+    # A real serializer omits node_id = 0, so the envelope has only field 3.
+    inner = _state_response_bytes(0, _ac_state_bytes())
+    raw = Writer().message(3, inner).finish()
+    parsed = messages.parse_state_response(raw)
+    assert parsed.nodes[0].kind == DEVICE_KIND_AC
+
+
+def test_live_reply_from_real_unit_decodes():
+    # Captured from a real unit (serial and SSID replaced): Response.device.shared.state{gateway=1, nodes=2}
+    raw = bytes.fromhex(
+        "12710a6f0a6d0a3010361a0a494e30303030303030312220"
+        "0a0101121b0a190a0a57616e6465726c75737410c4ffffffffffffffff012001"
+        "123912370a3510011a140d0000c04115000080411d0000f841250000003f"
+        "220908031a0501020304052a0908011205020304050130003d9a99c541"
+    )
+    parsed = messages.parse_state_response(raw)
+    assert parsed.gateway.firmware_version_code == 54
+    assert parsed.gateway.serial_number == "IN00000001"
+    assert parsed.gateway.wifi_rssi == -60
+    node = parsed.nodes[0]
+    assert node.kind == DEVICE_KIND_AC and node.power is True
+    assert node.setpoint.value == 24.0 and node.hvac_mode == HvacMode.COOL and node.fan_speed == FanSpeed.AUTO
+    assert node.fan_capabilities == [FanSpeed.MIN, FanSpeed.MID, FanSpeed.MAX, FanSpeed.BOOST, FanSpeed.AUTO]
+    assert abs(node.air_temperature - 24.7) < 1e-5
+    assert node.flap_swing is False and node.has_flap_swing
+    assert not node.has_humidity and not node.has_erv and not node.has_silent_mode
+
+
+def test_carry_over_keeps_capabilities_and_gateway():
+    pass
+    old = messages.parse_state_response(_state_response_bytes(0, _ac_state_bytes())).nodes[0]
+    old.gateway.firmware_version_code = 54
+    new = messages.parse_state_response(_state_response_bytes(0, Writer().bool(2, True).float32(7, 20.0).finish())).nodes[0]
+    assert not new.has_humidity
+    new.carry_over(old)
+    assert new.has_humidity and new.has_erv and new.has_silent_mode and new.has_flap_swing
+    assert new.gateway.firmware_version_code == 54
+
+
+def test_truncated_payload_raises():
+    import pytest
+
+    with pytest.raises(ValueError):
+        Message(b"\x0a\x10\x01")

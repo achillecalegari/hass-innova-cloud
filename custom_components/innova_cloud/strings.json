@@ -31,7 +31,8 @@
     },
     "abort": {
       "already_configured": "This account is already configured",
-      "reauth_successful": "Re-authentication was successful"
+      "reauth_successful": "Re-authentication was successful",
+      "wrong_account": "The account is different from the one this entry was set up with"
     }
   },
   "entity": {
@@ -47,11 +48,21 @@
       }
     },
     "sensor": {
-      "air_temperature": { "name": "Room temperature" },
-      "outdoor_temperature": { "name": "Outdoor temperature" },
-      "air_humidity": { "name": "Humidity" },
-      "wifi_rssi": { "name": "Wi-Fi signal" },
-      "alarms": { "name": "Alarms" },
+      "air_temperature": {
+        "name": "Room temperature"
+      },
+      "outdoor_temperature": {
+        "name": "Outdoor temperature"
+      },
+      "air_humidity": {
+        "name": "Humidity"
+      },
+      "wifi_rssi": {
+        "name": "Wi-Fi signal"
+      },
+      "alarms": {
+        "name": "Alarms"
+      },
       "operation_mode": {
         "name": "Operation mode",
         "state": {
@@ -63,9 +74,15 @@
       }
     },
     "switch": {
-      "silent_mode": { "name": "Silent mode" },
-      "erv": { "name": "Air exchange" },
-      "manual_mode": { "name": "Manual override" }
+      "silent_mode": {
+        "name": "Silent mode"
+      },
+      "erv": {
+        "name": "Air exchange"
+      },
+      "manual_mode": {
+        "name": "Manual override"
+      }
     }
   }
 }

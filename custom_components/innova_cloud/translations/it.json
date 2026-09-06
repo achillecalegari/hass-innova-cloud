@@ -31,7 +31,8 @@
     },
     "abort": {
       "already_configured": "Questo account e' gia' configurato",
-      "reauth_successful": "Nuova autenticazione riuscita"
+      "reauth_successful": "Nuova autenticazione riuscita",
+      "wrong_account": "L'account e' diverso da quello con cui era stata configurata l'integrazione"
     }
   },
   "entity": {
@@ -47,11 +48,21 @@
       }
     },
     "sensor": {
-      "air_temperature": { "name": "Temperatura ambiente" },
-      "outdoor_temperature": { "name": "Temperatura esterna" },
-      "air_humidity": { "name": "Umidita'" },
-      "wifi_rssi": { "name": "Segnale Wi-Fi" },
-      "alarms": { "name": "Allarmi" },
+      "air_temperature": {
+        "name": "Temperatura ambiente"
+      },
+      "outdoor_temperature": {
+        "name": "Temperatura esterna"
+      },
+      "air_humidity": {
+        "name": "Umidita'"
+      },
+      "wifi_rssi": {
+        "name": "Segnale Wi-Fi"
+      },
+      "alarms": {
+        "name": "Allarmi"
+      },
       "operation_mode": {
         "name": "Modalita' operativa",
         "state": {
@@ -63,9 +74,15 @@
       }
     },
     "switch": {
-      "silent_mode": { "name": "Modalita' silenziosa" },
-      "erv": { "name": "Ricambio aria" },
-      "manual_mode": { "name": "Forzatura manuale" }
+      "silent_mode": {
+        "name": "Modalita' silenziosa"
+      },
+      "erv": {
+        "name": "Ricambio aria"
+      },
+      "manual_mode": {
+        "name": "Forzatura manuale"
+      }
     }
   }
 }

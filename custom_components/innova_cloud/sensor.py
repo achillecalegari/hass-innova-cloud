@@ -13,7 +13,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .api.models import DEVICE_KIND_HEATPUMP, DeviceState
 from .coordinator import InnovaCoordinator
-from .entity import InnovaEntity
+from .entity import InnovaEntity, async_setup_discovery
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -85,24 +85,13 @@ SENSORS: tuple[InnovaSensorDescription, ...] = (
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     coordinator: InnovaCoordinator = entry.runtime_data
-    known: set[tuple[str, str]] = set()
 
-    def _discover() -> None:
-        new = []
-        for key, device in coordinator.devices.items():
-            state = coordinator.get_state(key)
-            if state is None:
-                continue
-            for description in SENSORS:
-                if (key, description.key) in known or not description.exists_fn(state):
-                    continue
-                known.add((key, description.key))
-                new.append(InnovaSensor(coordinator, device, description))
-        if new:
-            async_add_entities(new)
+    def _factory(device, state):
+        for description in SENSORS:
+            if description.exists_fn(state):
+                yield description.key, InnovaSensor(coordinator, device, description)
 
-    _discover()
-    entry.async_on_unload(coordinator.async_add_listener(_discover))
+    async_setup_discovery(entry, coordinator, async_add_entities, _factory)
 
 
 class InnovaSensor(InnovaEntity, SensorEntity):

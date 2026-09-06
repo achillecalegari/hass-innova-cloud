@@ -100,6 +100,10 @@ python scripts/innova_cli.py set AA:BB:CC:11:22:33 --power on --mode cool --temp
 If something is decoded wrongly, `python scripts/innova_cli.py raw <mac>` prints the undecoded
 reply; please attach it to a GitHub issue.
 
+## Robustness
+
+What happens when a unit drops off Wi‑Fi, the cloud restarts, the token expires or a unit is added/removed in the app is documented scenario by scenario in [docs/ROBUSTNESS.md](docs/ROBUSTNESS.md).
+
 ## Debug logging
 
 ```yaml

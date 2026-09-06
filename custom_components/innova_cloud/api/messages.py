@@ -28,7 +28,16 @@ from .models import (
     ResponseErrorCode,
     Setpoint,
 )
+import logging
+
 from .protobuf import Message, Writer
+
+_LOGGER = logging.getLogger(__name__)
+
+
+def _debug(msg: Message) -> dict | None:
+    """Generic rendering of a payload, only when debug logging is on (it costs a second decode)."""
+    return msg.to_debug() if _LOGGER.isEnabledFor(logging.DEBUG) else None
 
 SERVICE = "services.app.AppService"
 METHOD_SEND_DEVICE = f"/{SERVICE}/SendDevice"
@@ -177,11 +186,11 @@ def _operation_mode_state(msg: Message | None) -> OperationMode:
     return out
 
 
-def _gateway_state(msg: Message | None) -> GatewayState:
+def _gateway_state(msg: Message | None) -> GatewayState | None:
     """shared.gateway.State { repeated Alarm alarms = 1; uint32 firmware_version_code = 2; string serial_number = 3; Connection connection = 4; map interfaces = 5; }"""
-    out = GatewayState()
     if msg is None:
-        return out
+        return None
+    out = GatewayState()
     out.alarms = msg.varints(1) if msg.wires.get(1) != 2 or not msg.messages(1) else []
     out.firmware_version_code = msg.int(2)
     out.serial_number = msg.string(3)
@@ -248,7 +257,7 @@ def _parse_common_state(msg: Message, kind: str) -> DeviceState:
     state.air_temperature = msg.float(7)
     state.air_humidity = msg.float(8)
     state.has_humidity = msg.has(8)
-    state.last_raw = msg.to_debug()
+    state.last_raw = _debug(msg)
     return state
 
 
@@ -262,7 +271,7 @@ def parse_heatpump_state(msg: Message) -> DeviceState:
         state.hvac_actual = _enum(HvacMode, hvac.int(2))
     state.air_temperature = msg.float(9)  # outdoor temperature
     state.operation_mode = _operation_mode_state(msg.message(13))
-    state.last_raw = msg.to_debug()
+    state.last_raw = _debug(msg)
     return state
 
 
@@ -311,7 +320,7 @@ def _parse_common_event(msg: Message, kind: str) -> DeviceState:
     patch.fan_speed = _enum(FanSpeed, msg.int(6))
     patch.flap_swing = msg.bool(7)
     patch.has_flap_swing = msg.has(7)
-    patch.last_raw = msg.to_debug()
+    patch.last_raw = _debug(msg)
     return patch
 
 
@@ -321,7 +330,7 @@ def parse_heatpump_event(msg: Message) -> DeviceState:
     patch.hvac_mode = _enum(HvacMode, msg.int(7))
     patch.air_temperature = msg.float(9)
     patch.operation_mode = _operation_mode_state(msg.message(13))
-    patch.last_raw = msg.to_debug()
+    patch.last_raw = _debug(msg)
     return patch
 
 
@@ -364,7 +373,7 @@ def parse_event(buf: bytes) -> DeviceEvent | None:
     if device is None:
         return None
     event = DeviceEvent(device.bytes(1, b""), device.int(2))
-    event.raw = outer.to_debug()
+    event.raw = _debug(outer)
     payload = device.message(3)
     if payload is None:
         return event
@@ -428,9 +437,10 @@ def parse_state_response(buf: bytes) -> StateResponse:
     if not buf:
         return out
     msg = Message(buf)
-    out.raw = msg.to_debug()
-    # Unwrap DeviceMessage envelope if present (field 1 varint = node_id, field 3 = response).
-    if msg.wires.get(1) == 0 and msg.has(3):
+    out.raw = _debug(msg)
+    # Unwrap a DeviceMessage envelope if present: there field 1 is a varint node_id (omitted when 0)
+    # and field 3 is the Response; in a bare Response field 1 is the Error submessage and 3 the Service.
+    if msg.has(3) and msg.wires.get(1) != 2 and not msg.has(2):
         inner = msg.message(3)
         if inner is not None:
             msg = inner
