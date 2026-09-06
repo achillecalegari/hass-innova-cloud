@@ -1,6 +1,6 @@
 """Round-trip tests for the hand-written protobuf codec."""
 
-from custom_components.innova_cloud.api.protobuf import Message, Writer, encode_varint
+from api.protobuf import Message, Writer, encode_varint
 
 
 def test_varint():

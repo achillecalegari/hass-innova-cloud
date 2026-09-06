@@ -19,13 +19,13 @@ import os
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "custom_components" / "innova_cloud"))
 
 import aiohttp  # noqa: E402
 
-from custom_components.innova_cloud.api import InnovaGrpcClient, InnovaRestClient, messages  # noqa: E402
-from custom_components.innova_cloud.api.models import FanSpeed, HvacMode, mac_to_bytes, mac_to_str, uuid_to_bytes  # noqa: E402
-from custom_components.innova_cloud.api.protobuf import Message  # noqa: E402
+from api import InnovaGrpcClient, InnovaRestClient, messages  # noqa: E402
+from api.models import FanSpeed, HvacMode, mac_to_bytes, mac_to_str, uuid_to_bytes  # noqa: E402
+from api.protobuf import Message  # noqa: E402
 
 
 def _dump(obj) -> str:

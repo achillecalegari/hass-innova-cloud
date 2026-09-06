@@ -1,4 +1,4 @@
-from custom_components.innova_cloud.api.rest import decode_jwt_claims, extract_token
+from api.rest import decode_jwt_claims, extract_token
 
 JWT = "eyJ0eXAiOiJKV1QiLCJhbGciOiJQUzI1NiJ9.eyJhdWQiOiJ1c2VyLWFwaSIsInN1YiI6ImFiYyJ9.c2ln"
 

@@ -32,5 +32,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - run: pip install pytest
+      - run: pip install pytest grpcio aiohttp
       - run: pytest -q tests

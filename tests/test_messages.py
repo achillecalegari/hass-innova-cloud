@@ -1,7 +1,7 @@
 """Schema-level tests: encoders produce the expected wire bytes and decoders read them back."""
 
-from custom_components.innova_cloud.api import messages
-from custom_components.innova_cloud.api.models import (
+from api import messages
+from api.models import (
     DEVICE_KIND_AC,
     DEVICE_KIND_FANCOIL,
     FanSpeed,
@@ -13,7 +13,7 @@ from custom_components.innova_cloud.api.models import (
     mac_to_str,
     uuid_to_bytes,
 )
-from custom_components.innova_cloud.api.protobuf import Message, Writer, encode_varint
+from api.protobuf import Message, Writer, encode_varint
 
 MAC = "F0:F5:BD:09:38:F8"
 
