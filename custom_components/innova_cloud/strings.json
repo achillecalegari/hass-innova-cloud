@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "Innova Cloud",
+        "title": "Innova Cloud (Solution Tech)",
         "description": "Pick the app you use. Innova's cloud is white-labelled for other brands: each uses the same platform on its own tenant.",
         "data": {
           "brand": "App / brand"

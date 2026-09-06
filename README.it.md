@@ -1,5 +1,7 @@
 # Innova Cloud per Home Assistant
 
+**Per la piattaforma cloud Solution Tech: Innova, Panasonic Aquarea Home, Rhoss Tema, Etherma Fire+Ice 2, DiffusApp (STG / Diffusalp).**
+
 Integrazione per i **climatizzatori e fan coil Innova di nuova generazione** (unità 2024 in poi,
 serie FÄRNA e 2.0 con modulo Wi‑Fi ESP32) che si comandano solo con l'**app "Innova" di Solution Tech**
 e **non hanno un'API locale**.

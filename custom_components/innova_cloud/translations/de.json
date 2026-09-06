@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "Innova Cloud",
+        "title": "Innova Cloud (Solution Tech)",
         "description": "Wähle die App, die du benutzt. Die Innova-Cloud wird auch unter anderen Marken angeboten: gleiche Plattform, eigener Mandant.",
         "data": {
           "brand": "App / Marke"

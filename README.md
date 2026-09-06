@@ -1,5 +1,7 @@
 # Innova Cloud for Home Assistant
 
+**For the Solution Tech cloud platform: Innova, Panasonic Aquarea Home, Rhoss Tema, Etherma Fire+Ice 2, DiffusApp (STG / Diffusalp).**
+
 [![HACS](https://img.shields.io/badge/HACS-custom-orange.svg)](https://hacs.xyz)
 [![Validate](https://github.com/achillecalegari/hass-innova-cloud/actions/workflows/validate.yml/badge.svg)](https://github.com/achillecalegari/hass-innova-cloud/actions/workflows/validate.yml)
 
