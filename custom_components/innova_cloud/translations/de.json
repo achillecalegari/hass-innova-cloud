@@ -10,7 +10,7 @@
       },
       "custom_hosts": {
         "title": "Eigene Cloud-Hosts",
-        "description": "Für einen Mandanten, der nicht in der Liste steht: REST-Basis-URL (z. B. https://v2.api.<marke>.solutiontech.tech) und gRPC-Host (z. B. v2.grpc.<marke>.solutiontech.tech).",
+        "description": "Für einen Mandanten, der nicht in der Liste steht: REST-Basis-URL (z. B. https://v2.api.MARKE.solutiontech.tech) und gRPC-Host (z. B. v2.grpc.MARKE.solutiontech.tech).",
         "data": {
           "rest_base": "REST-Basis-URL",
           "grpc_host": "gRPC-Host"
