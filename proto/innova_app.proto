@@ -209,8 +209,8 @@ message Response {
         heatpump.State heatpump = 4; butler.State butler = 5; NodeError error = 6;
       }
     }
-    map<uint32, Node> nodes = 1;
-    optional gateway.State gateway = 2;
+    optional gateway.State gateway = 1;
+    map<uint32, Node> nodes = 2;
   }
   oneof type { State state = 1; }
 }

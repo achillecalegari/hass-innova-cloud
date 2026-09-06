@@ -417,7 +417,7 @@ def parse_state_response(buf: bytes) -> StateResponse:
     Response.Error { Code code = 1; string message = 2; }
     Response.Device { oneof { shared.Response shared = 1; ac.Response ac = 2; ... } }
     shared.Response { oneof { State state = 1; } }
-    shared.Response.State { map<uint32, Node> nodes = 1; gateway.State gateway = 2; }
+    shared.Response.State { gateway.State gateway = 1; map<uint32, Node> nodes = 2; }
     shared.Response.State.Node { oneof { ac.State ac = 1; fancoil.State fancoil = 2; thermostat.State thermostat = 3;
                                         heatpump.State heatpump = 4; butler.State butler = 5; NodeError error = 6; } }
 
@@ -448,7 +448,7 @@ def parse_state_response(buf: bytes) -> StateResponse:
     state = shared.message(1)
     if state is None:
         return out
-    for entry in state.messages(1):
+    for entry in state.messages(2):
         node_id = entry.int(1, 0) or 0
         node = entry.message(2)
         if node is None:
@@ -465,5 +465,5 @@ def parse_state_response(buf: bytes) -> StateResponse:
                 parsed.node_error = _enum(NodeError, node.int(6))
                 parsed.online = parsed.node_error != NodeError.OFFLINE
         out.nodes[node_id] = parsed
-    out.gateway = _gateway_state(state.message(2))
+    out.gateway = _gateway_state(state.message(1))
     return out

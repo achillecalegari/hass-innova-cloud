@@ -50,8 +50,8 @@ Authentication: `Authorization: Bearer <JWT>`. The JWT is signed with PS256 by t
 ```json
 [{"id":"<uuid>","name":"Casa","calendarId":null,"timezone":"Europe/Rome",
   "members":[{"id":"<uuid>","firstname":"…","lastname":"…","email":"…","role":"owner"}],
-  "devices":[{"macAddress":"F0:F5:BD:09:38:F8","nodeId":0,"name":"Salotto",
-              "uid":{"vendorId":1,"productId":1,"hwRevision":1},"serialNumber":"IN25…","roomId":"<uuid>"}],
+  "devices":[{"macAddress":"AA:BB:CC:11:22:33","nodeId":0,"name":"Salotto",
+              "uid":{"vendorId":1,"productId":1,"hwRevision":1},"serialNumber":"IN…","roomId":"<uuid>"}],
   "rooms":[{"id":"<uuid>","name":"Salotto","orderIndex":null}],"calendars":[]}]
 ```
 
@@ -90,8 +90,7 @@ The app keeps one `SubscribeEvents` stream per home open in the background (with
 
 ### Responses (`messages.DeviceMessage.Response`)
 
-`oneof { error=1 {code, message}, device=2, service=3 }`; `device.shared.Response.state.nodes` is a
-`map<uint32, Node>` where `Node` is `oneof { ac.State=1, fancoil.State=2, thermostat.State=3,
+`oneof { error=1 {code, message}, device=2, service=3 }`; `device.shared.Response.state` is `{ gateway.State gateway = 1; map<uint32, Node> nodes = 2 }` where `Node` where `Node` is `oneof { ac.State=1, fancoil.State=2, thermostat.State=3,
 heatpump.State=4, butler.State=5, NodeError error=6 }`, plus `gateway.State` (firmware version code,
 serial number, Wi‑Fi SSID/RSSI/SNR, interfaces). Error codes: `RESPONSE_TIMEOUT`, `CACHE_NOT_READY`;
 node errors: `OFFLINE`, `CACHE_NOT_READY`, `INTERNAL`.
@@ -136,8 +135,20 @@ rich `TelemetryType` enum (287 values: compressor speed, EEV opening, inverter v
 Wi‑Fi chip temperature, …). They are not decoded by the integration but the enum is in the app
 binary should someone want energy/diagnostic sensors.
 
-## Things not verified on the wire
+## Verified on the wire (2026-09-06)
 
-The schema was reconstructed statically; encoders follow the recovered types exactly, and the
-integration logs raw payloads at debug level. If a device family answers with something unexpected,
-`scripts/innova_cli.py raw <mac>` prints the undecoded reply.
+Checked against two real units (vendor 1 / product 1 / hw 1, firmware 54) with the integration's own codec:
+
+* `GET /app/homes` with the app's bearer token;
+* `SendDevice(get_state)` → `Response.device.shared.state { gateway = 1, nodes = 2 }` (note: gateway first),
+  node 0 = `ac.State` with power, setpoint 16–31 step 0.5, hvac mode + capabilities [AUTO, HEAT, COOL, DRY, FAN],
+  fan speed + capabilities [MIN, MID, MAX, BOOST, AUTO], flap swing, air temperature. These units report
+  no humidity, ERV, silent mode or operation mode fields;
+* `SendDevice(ac.set_state { temperature_setpoint })` → reply `12 02 12 00` = `Response.device.ac {}` (accepted),
+  state read back with the new value;
+* `SubscribeEvents { home_id = 16 raw UUID bytes }` → the change arrives within a second as
+  `Event.device { mac, node_id 0, event.device.ac { temperature_setpoint { value } } }`.
+  A 36‑character UUID string is rejected: `INVALID_ARGUMENT "Invalid field 'home_id': Error(ParseByteLength { len: 36 })"`.
+
+If another device family answers with something unexpected, `scripts/innova_cli.py raw <mac>` prints the
+undecoded reply; please attach it to a GitHub issue.

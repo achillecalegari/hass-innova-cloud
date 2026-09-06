@@ -15,18 +15,18 @@ from api.models import (
 )
 from api.protobuf import Message, Writer, encode_varint
 
-MAC = "F0:F5:BD:09:38:F8"
+MAC = "AA:BB:CC:11:22:33"
 
 
 def test_mac_and_uuid_helpers():
     raw = mac_to_bytes(MAC)
-    assert raw == b"\xf0\xf5\xbd\x09\x38\xf8"
+    assert raw == b"\xaa\xbb\xcc\x11\x22\x33"
     assert mac_to_str(raw) == MAC
-    assert len(uuid_to_bytes("68fb3356-85cf-42f3-a7f5-1693eb0691d7")) == 16
+    assert len(uuid_to_bytes("0f1e2d3c-4b5a-4697-8877-665544332211")) == 16
 
 
 def test_subscribe_events_request():
-    home = uuid_to_bytes("68fb3356-85cf-42f3-a7f5-1693eb0691d7")
+    home = uuid_to_bytes("0f1e2d3c-4b5a-4697-8877-665544332211")
     assert messages.subscribe_events_request(home) == b"\x0a\x10" + home
 
 
@@ -106,10 +106,10 @@ def _ac_state_bytes(**overrides) -> bytes:
 def _state_response_bytes(node_id: int, ac_state: bytes, wrap_in_device_message: bool = False) -> bytes:
     node = Writer().message(1, ac_state)  # Node.ac = 1
     entry = Writer().varint(1, node_id).message(2, node)
-    gateway = Writer().varint(2, 1234).string(3, "IN25015684").message(
+    gateway = Writer().varint(2, 1234).string(3, "IN00000001").message(
         4, Writer().message(2, Writer().message(1, Writer().string(1, "MyWifi").varint(2, -61).varint(3, 30)))
     )
-    state = Writer().message(1, entry).message(2, gateway)
+    state = Writer().message(1, gateway).message(2, entry)
     shared = Writer().message(1, state)
     device = Writer().message(1, shared)
     response = Writer().message(2, device).finish()
@@ -138,7 +138,7 @@ def test_parse_state_response_ac():
     assert node.operation_mode.active == OperationModeType.MANUAL
     assert node.operation_mode.manual_enabled is True
     assert parsed.gateway.firmware_version_code == 1234
-    assert parsed.gateway.serial_number == "IN25015684"
+    assert parsed.gateway.serial_number == "IN00000001"
     assert parsed.gateway.wifi_ssid == "MyWifi" and parsed.gateway.wifi_rssi == -61
 
 
@@ -159,7 +159,7 @@ def test_parse_state_response_error():
 def test_parse_state_response_node_error():
     node = Writer().varint(6, NodeError.OFFLINE)
     entry = Writer().varint(1, 0).message(2, node)
-    raw = Writer().message(2, Writer().message(1, Writer().message(1, Writer().message(1, entry)))).finish()
+    raw = Writer().message(2, Writer().message(1, Writer().message(1, Writer().message(2, entry)))).finish()
     parsed = messages.parse_state_response(raw)
     assert parsed.nodes[0].node_error == NodeError.OFFLINE
     assert parsed.nodes[0].online is False

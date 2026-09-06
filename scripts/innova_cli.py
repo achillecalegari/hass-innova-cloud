@@ -4,10 +4,10 @@
     pip install grpcio aiohttp
     export INNOVA_TOKEN=eyJ...          # or: --email you@example.com --password ...
     python scripts/innova_cli.py homes
-    python scripts/innova_cli.py state F0:F5:BD:09:38:F8
+    python scripts/innova_cli.py state AA:BB:CC:11:22:33
     python scripts/innova_cli.py watch                # live events (Ctrl-C to stop)
-    python scripts/innova_cli.py set F0:F5:BD:09:38:F8 --power on --mode cool --temp 24 --fan auto
-    python scripts/innova_cli.py raw F0:F5:BD:09:38:F8  # undecoded get_state reply, for debugging
+    python scripts/innova_cli.py set AA:BB:CC:11:22:33 --power on --mode cool --temp 24 --fan auto
+    python scripts/innova_cli.py raw AA:BB:CC:11:22:33  # undecoded get_state reply, for debugging
 """
 
 from __future__ import annotations
@@ -33,6 +33,7 @@ def _dump(obj) -> str:
 
 
 async def main() -> int:
+    sys.stdout.reconfigure(line_buffering=True)
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--token", default=os.environ.get("INNOVA_TOKEN"))
     parser.add_argument("--token-file")

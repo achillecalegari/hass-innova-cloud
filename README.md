@@ -92,9 +92,9 @@ private: it grants full control of your units.
 ```bash
 export INNOVA_TOKEN=eyJ...           # or --email/--password
 python scripts/innova_cli.py homes
-python scripts/innova_cli.py state F0:F5:BD:09:38:F8
+python scripts/innova_cli.py state AA:BB:CC:11:22:33
 python scripts/innova_cli.py watch
-python scripts/innova_cli.py set F0:F5:BD:09:38:F8 --power on --mode cool --temp 24 --fan auto
+python scripts/innova_cli.py set AA:BB:CC:11:22:33 --power on --mode cool --temp 24 --fan auto
 ```
 
 If something is decoded wrongly, `python scripts/innova_cli.py raw <mac>` prints the undecoded
@@ -110,7 +110,7 @@ logger:
 
 ## Supported / tested
 
-Developed on two Innova units (vendor 1, product 1, hw 1, serials `IN25…`) paired with app 3.2.3.
+Developed on two Innova units (vendor 1, product 1, hw 1, serials `IN…`) paired with app 3.2.3.
 Fan coils and thermostats share the same message layout and should work; heat pumps are read‑only.
 The same cloud platform is white‑labelled for other brands (Panasonic Aquarea Home, Rhoss Tema,
 Etherma FireIce 2, Immergas, Diffus App): the REST base URL and gRPC host are configurable in the
