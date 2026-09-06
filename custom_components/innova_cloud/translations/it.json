@@ -140,6 +140,11 @@
       "dhw": {
         "name": "Acqua sanitaria"
       }
+    },
+    "button": {
+      "reboot": {
+        "name": "Riavvia"
+      }
     }
   },
   "options": {
@@ -151,6 +156,22 @@
         },
         "data_description": {
           "poll_minutes": "Le modifiche arrivano dal flusso eventi; questa e' solo la rilettura di sicurezza. 10 minuti bastano."
+        }
+      }
+    }
+  },
+  "services": {
+    "set_manual_mode": {
+      "name": "Imposta modalita' manuale",
+      "description": "Forza la modalita' manuale al posto del calendario per un numero di ore o senza limite, oppure restituisce il controllo al calendario.",
+      "fields": {
+        "enabled": {
+          "name": "Modalita' manuale",
+          "description": "Vero per forzare la modalita' manuale, falso per tornare al calendario."
+        },
+        "hours": {
+          "name": "Durata",
+          "description": "Ore prima che il calendario riprenda il controllo. Vuoto = senza limite."
         }
       }
     }

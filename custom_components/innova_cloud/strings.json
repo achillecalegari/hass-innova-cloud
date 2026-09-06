@@ -140,6 +140,11 @@
       "dhw": {
         "name": "Hot water"
       }
+    },
+    "button": {
+      "reboot": {
+        "name": "Reboot"
+      }
     }
   },
   "options": {
@@ -151,6 +156,22 @@
         },
         "data_description": {
           "poll_minutes": "Live changes arrive through the event stream; this is only the safety-net poll. 10 minutes is plenty."
+        }
+      }
+    }
+  },
+  "services": {
+    "set_manual_mode": {
+      "name": "Set manual mode",
+      "description": "Override the unit's calendar (manual mode) for a number of hours or indefinitely, or hand control back to the calendar.",
+      "fields": {
+        "enabled": {
+          "name": "Manual mode",
+          "description": "True to force manual mode, false to follow the calendar again."
+        },
+        "hours": {
+          "name": "Duration",
+          "description": "Hours before the calendar takes over again. Leave empty for no limit."
         }
       }
     }

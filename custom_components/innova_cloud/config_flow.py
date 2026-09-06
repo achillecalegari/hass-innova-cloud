@@ -130,13 +130,14 @@ class InnovaConfigFlow(ConfigFlow, domain=DOMAIN):
             client = self._client(token)
             try:
                 await client.get_homes_raw()
+                me = await client.get_me()
             except InnovaAuthError:
                 errors["base"] = "invalid_auth"
             except InnovaApiError as err:
                 _LOGGER.debug("Token check failed: %s", err)
                 errors["base"] = "cannot_connect"
             else:
-                return await self._async_finish(token)
+                return await self._async_finish(token, email=me.get("email"))
         return self.async_show_form(step_id="token", data_schema=STEP_TOKEN_SCHEMA, errors=errors)
 
     async def _async_finish(self, token: str, email: str | None = None, password: str | None = None) -> ConfigFlowResult:

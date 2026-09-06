@@ -21,11 +21,15 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_TEMPERATURE, PRECISION_HALVES, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.util import dt as dt_util
+import voluptuous as vol
+
+from homeassistant.helpers import config_validation as cv, entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .api import InnovaApiError, messages
 from .api.models import CLIMATE_KINDS, DEVICE_KIND_HEATPUMP, DeviceState, FanSpeed, HvacMode
-from .const import ATTR_ALARMS, ATTR_CALENDAR_PRESET, ATTR_HVAC_ACTUAL, ATTR_MANUAL_UNTIL, ATTR_NODE_ID, ATTR_OPERATION_MODE
+from .const import ATTR_ALARMS, ATTR_ENABLED, ATTR_HOURS, SERVICE_SET_MANUAL_MODE, ATTR_CALENDAR_PRESET, ATTR_HVAC_ACTUAL, ATTR_MANUAL_UNTIL, ATTR_NODE_ID, ATTR_OPERATION_MODE
 from .coordinator import InnovaCoordinator
 from .entity import InnovaEntity, async_setup_discovery
 
@@ -71,6 +75,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
                     yield zone, InnovaHeatPumpZone(coordinator, device, zone)
 
     async_setup_discovery(entry, coordinator, async_add_entities, _factory)
+
+    platform = entity_platform.async_get_current_platform()
+    platform.async_register_entity_service(
+        SERVICE_SET_MANUAL_MODE,
+        {vol.Required(ATTR_ENABLED): cv.boolean, vol.Optional(ATTR_HOURS): vol.All(vol.Coerce(float), vol.Range(min=0.25, max=168))},
+        "async_set_manual_mode",
+    )
 
 
 class InnovaClimate(InnovaEntity, ClimateEntity):
@@ -256,6 +267,16 @@ class InnovaClimate(InnovaEntity, ClimateEntity):
                 payload["hvac_mode"] = mode
         if payload:
             await self._send(**payload)
+
+    async def async_set_manual_mode(self, enabled: bool, hours: float | None = None) -> None:
+        """Service: override the calendar (manual mode) for ``hours`` hours, or forever, or go back to the calendar."""
+        until = None
+        if enabled and hours:
+            until = int(dt_util.utcnow().timestamp() // 60) + int(hours * 60)
+        try:
+            await self.coordinator.async_send_request(self._key, messages.request_set_manual_mode(self._device.node_id, enabled, until))
+        except InnovaApiError as err:
+            raise HomeAssistantError(f"Innova command failed: {err}") from err
 
     async def async_set_fan_mode(self, fan_mode: str) -> None:
         speed = _HA_TO_FAN.get(fan_mode)

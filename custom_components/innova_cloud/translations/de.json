@@ -153,6 +153,27 @@
       "dhw": {
         "name": "Warmwasser"
       }
+    },
+    "button": {
+      "reboot": {
+        "name": "Neustart"
+      }
+    }
+  },
+  "services": {
+    "set_manual_mode": {
+      "name": "Manuellen Modus setzen",
+      "description": "Übersteuert den Zeitplan des Geräts (manueller Modus) für einige Stunden oder unbegrenzt, oder gibt die Kontrolle an den Zeitplan zurück.",
+      "fields": {
+        "enabled": {
+          "name": "Manueller Modus",
+          "description": "Wahr für manuellen Modus, falsch um wieder dem Zeitplan zu folgen."
+        },
+        "hours": {
+          "name": "Dauer",
+          "description": "Stunden, bis der Zeitplan wieder übernimmt. Leer = unbegrenzt."
+        }
+      }
     }
   }
 }

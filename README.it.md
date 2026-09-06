@@ -73,7 +73,9 @@ pettiness, il tempo e i soldi per farne un caso d'esempio.
 * `switch`: modalità silenziosa, ricambio aria (ERV, se presente), forzatura manuale (spegne la
   programmazione; con la programmazione attiva l'unità può annullare le modifiche alla fascia successiva).
 
-* `binary_sensor`: allarme (acceso quando la maschera allarmi non è zero).
+* `binary_sensor`: allarme (acceso quando la maschera allarmi non è zero), con l'attributo `alarms` che elenca gli allarmi attivi con il testo e il codice a display dell'app (E1, F2…).
+* `button`: riavvio della scheda dell'unità (lo stesso comando dell'app).
+* servizio `innova_cloud.set_manual_mode` (su un'entità climate): forza la modalità manuale per un numero di ore o senza limite, o restituisce il controllo al calendario.
 
 **Pompe di calore** (dallo schema dell'app, non ancora verificate su hardware reale, segnalazioni benvenute): un `climate`
 per zona (`zone1` / `zone2`, setpoint di riscaldamento o raffrescamento secondo il modo della pompa, temperatura acqua

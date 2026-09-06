@@ -321,3 +321,17 @@ def test_heatpump_set_state_request():
     assert zone1.bool(1) is True and abs(zone1.float(2) - 34.5) < 1e-6 and not zone1.has(3)
     assert not set_state.has(3)
     assert set_state.int(4) == HvacMode.HEAT and set_state.int(5) == SilentLevel.LEVEL_1 and set_state.int(6) == LoadType.LOAD_TYPE_DHW
+
+
+def test_alarm_descriptions():
+    from api.alarms import describe_alarms
+
+    assert describe_alarms("ac", 0) == []
+    assert describe_alarms("ac", (1 << 0) | (1 << 9), "en") == ["Room probe fault (display E1)", "Condensate water alarm (display F2)"]
+    assert describe_alarms("fancoil", 1 << 10, "it")[0].startswith("Manutenzione filtro")
+    assert describe_alarms("ac", 1 << 40) == ["Alarm 40"]
+
+
+def test_system_reboot_request():
+    raw = messages.request_system_reboot()
+    assert Message(raw).message(1).has(1)

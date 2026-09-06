@@ -8,6 +8,7 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .api.alarms import describe_alarms
 from .coordinator import InnovaCoordinator
 from .entity import InnovaEntity, async_setup_discovery
 
@@ -39,6 +40,9 @@ class InnovaAlarmSensor(InnovaEntity, BinarySensorEntity):
         return state.alarms != 0
 
     @property
-    def extra_state_attributes(self) -> dict[str, int]:
+    def extra_state_attributes(self) -> dict[str, object]:
         state = self.device_state
-        return {"alarm_bitmask": state.alarms} if state and state.alarms is not None else {}
+        if not state or state.alarms is None:
+            return {}
+        lang = (self.hass.config.language or "en").split("-")[0]
+        return {"alarm_bitmask": state.alarms, "alarms": describe_alarms(state.kind, state.alarms, lang)}

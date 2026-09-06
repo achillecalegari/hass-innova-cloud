@@ -86,7 +86,10 @@ pettiness, the time and the money to make a test case out of it.
 | `switch.<name>_silent_mode` | Air conditioners only. |
 | `switch.<name>_air_exchange` | ERV, only if the unit has it. |
 | `switch.<name>_manual_override` | Turns the schedule off (manual) or on again. When a schedule is active the unit may revert manual changes at the next schedule slot. |
-| `binary_sensor.<name>_alarm` | Problem sensor, on when the alarm bitmask is not zero (diagnostic). |
+| `binary_sensor.<name>_alarm` | Problem sensor, on when the alarm bitmask is not zero; the `alarms` attribute lists the active alarms with the text and display code the app shows (E1, F2…). |
+| `button.<name>_reboot` | Reboots the unit's control board (the same command the app sends). |
+
+Service `innova_cloud.set_manual_mode` (target: a climate entity): force manual mode for a number of hours or indefinitely, or hand control back to the calendar.
 
 **Heat pumps** (from the app schema, not yet verified on real hardware, reports welcome): one `climate` per zone
 (`zone1` / `zone2`, heating or cooling setpoint depending on the heat pump mode, water temperature as current

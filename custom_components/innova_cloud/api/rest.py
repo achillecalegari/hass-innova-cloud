@@ -131,6 +131,11 @@ class InnovaRestClient:
         self.token = token
         return token
 
+    async def get_me(self) -> dict[str, Any]:
+        """``GET /app/users/me`` -> {id, email, firstname, lastname, emailVerified, state}."""
+        data = await self._request("GET", "users/me")
+        return data if isinstance(data, dict) else {}
+
     async def get_homes_raw(self) -> list[dict[str, Any]]:
         data = await self._request("GET", "homes")
         if not isinstance(data, list):

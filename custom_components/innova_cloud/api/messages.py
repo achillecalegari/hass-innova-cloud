@@ -119,6 +119,11 @@ def request_set_state(
     return Writer().message(_KIND_TO_REQ[kind], device_request).finish()
 
 
+def request_system_reboot() -> bytes:
+    """CloudMessage.Request { system = 1: System { reboot = 1: Reboot {} } }"""
+    return Writer().message(_REQ_SYSTEM, Writer().message(1, b"")).finish()
+
+
 def request_heatpump_set_state(
     *,
     dhw_power: bool | None = None,
