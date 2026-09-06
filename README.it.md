@@ -8,6 +8,10 @@ Le Innova 2.0 e AirLeaf più vecchie, quelle che rispondono su `http://<ip>/api/
 coperte da [danielrivard/homeassistant-innova](https://github.com/danielrivard/homeassistant-innova):
 se la tua unità risponde a quell'indirizzo usa quella, se funziona solo tramite cloud e pairing
 Bluetooth usa questa.
+[ChristophHohner/homeassistant-innova-duepuntozero](https://github.com/ChristophHohner/homeassistant-innova-duepuntozero)
+usa lo stesso cloud ma con gli endpoint **v1** (`api.innova.solutiontech.tech`, `grpc.innova.solutiontech.tech`)
+che l'app attuale non usa più; questa integrazione implementa la API v2 (`v2.api…` / `v2.grpc…`,
+servizio `services.app.AppService`) richiesta da firmware e app attuali.
 
 ## Perché esiste (una nota per Innova)
 

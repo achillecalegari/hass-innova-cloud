@@ -9,7 +9,11 @@ controlled by the **"Innova" app by Solution Tech** and have **no local API**.
 
 Older Innova 2.0 / AirLeaf units with the local REST API (`http://<ip>/api/v/1/status`) are
 covered by [danielrivard/homeassistant-innova](https://github.com/danielrivard/homeassistant-innova),
-not by this integration. Quick check: if your unit answers on `http://<ip>/api/v/1/status`, use that
+not by this integration. [ChristophHohner/homeassistant-innova-duepuntozero](https://github.com/ChristophHohner/homeassistant-innova-duepuntozero)
+targets the same cloud but through the **v1** endpoints (`api.innova.solutiontech.tech`,
+`grpc.innova.solutiontech.tech`) that the current app no longer uses; this integration implements
+the v2 API (`v2.api…` / `v2.grpc…`, service `services.app.AppService`) that current firmware
+and app versions require. Quick check: if your unit answers on `http://<ip>/api/v/1/status`, use that
 one; if it only works through the cloud app (and its Bluetooth pairing flow), use this one.
 
 *Leggi le istruzioni in italiano: [README.it.md](README.it.md).*
