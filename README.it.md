@@ -11,7 +11,11 @@ Bluetooth usa questa.
 [ChristophHohner/homeassistant-innova-duepuntozero](https://github.com/ChristophHohner/homeassistant-innova-duepuntozero)
 usa lo stesso cloud ma con gli endpoint **v1** (`api.innova.solutiontech.tech`, `grpc.innova.solutiontech.tech`)
 che l'app attuale non usa più; questa integrazione implementa la API v2 (`v2.api…` / `v2.grpc…`,
-servizio `services.app.AppService`) richiesta da firmware e app attuali.
+servizio `services.app.AppService`) richiesta da firmware e app attuali. Anche
+[buenaonda/innova-farna-ha](https://github.com/buenaonda/innova-farna-ha) usa la API v2, in polling
+su `get_state`; questa integrazione in più tiene aperto il flusso eventi (le modifiche compaiono
+entro un secondo), rinnova la sessione da sola, espone gli interruttori silenziosa / ricambio aria /
+forzatura manuale e documenta l'intero protocollo con gli strumenti usati per ricostruirlo.
 
 ## Perché esiste (una nota per Innova)
 
