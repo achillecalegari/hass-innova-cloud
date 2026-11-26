@@ -66,7 +66,8 @@ pettiness, il tempo e i soldi per farne un caso d'esempio.
 ## Entità
 
 * `climate`: spento / auto / caldo / freddo / deumidificazione / solo ventola, ventola auto / bassa /
-  media / alta / boost (solo quelle che l'unità dichiara), temperatura con min/max/passo dell'unità,
+  media / alta / boost (solo quelle che l'unità dichiara; i fan coil con comando M7, come Filomuro e
+  FÄRNA, hanno auto / notte / alta, le velocità del loro pannello), temperatura con min/max/passo dell'unità,
   oscillazione flap, temperatura e umidità ambiente. Attributi: modalità operativa (programmazione /
   manuale / antigelo), preset del calendario attivo, modalità effettiva, bitmask allarmi.
 * `sensor`: temperatura ambiente, umidità (se presente), modalità operativa, allarmi, segnale Wi‑Fi.
@@ -109,6 +110,10 @@ Il cloud Innova è rivenduto ad altri marchi: Panasonic **Aquarea Home**, **Diff
 **Rhoss Tema** ed **Etherma Fire+Ice 2** usano la stessa piattaforma su un proprio tenant
 (`v2.api.<marchio>.solutiontech.tech`). Scegli il marchio nel primo passo della configurazione; per un
 tenant non in elenco scegli *Host personalizzati*. Lo schema dei messaggi è lo stesso per tutti.
+
+Non supportati: i dispositivi associati ad app non fatte da Solution Tech, come **ETHERMA eTOUCH**
+(i termostati eTOUCH PRO per il riscaldamento a pavimento), che usano un altro cloud. Se la
+configurazione dice che l'account non ha dispositivi, controlla in quale app sono i tuoi.
 
 ## Opzioni
 

@@ -47,7 +47,8 @@
     "abort": {
       "already_configured": "This account is already configured",
       "reauth_successful": "Re-authentication was successful",
-      "wrong_account": "The account is different from the one this entry was set up with"
+      "wrong_account": "The account is different from the one this entry was set up with",
+      "no_devices": "Signed in, but this account has no devices on the cloud of the app you picked. Set it up again choosing the app you actually use. Apps not made by Solution Tech (for example ETHERMA eTOUCH) use a different cloud and are not supported."
     }
   },
   "entity": {
@@ -56,7 +57,8 @@
         "state_attributes": {
           "fan_mode": {
             "state": {
-              "boost": "Boost"
+              "boost": "Boost",
+              "night": "Night"
             }
           }
         }

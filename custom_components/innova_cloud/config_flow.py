@@ -113,13 +113,15 @@ class InnovaConfigFlow(ConfigFlow, domain=DOMAIN):
             client = self._client()
             try:
                 token = await client.login(user_input[CONF_EMAIL], user_input[CONF_PASSWORD])
-                await client.get_homes_raw()
+                homes = await client.get_homes_raw()
             except InnovaAuthError:
                 errors["base"] = "invalid_auth"
             except InnovaApiError as err:
                 _LOGGER.debug("Login failed: %s", err)
                 errors["base"] = "cannot_connect"
             else:
+                if self._no_devices(homes):
+                    return self.async_abort(reason="no_devices")
                 return await self._async_finish(token, email=user_input[CONF_EMAIL], password=user_input[CONF_PASSWORD])
         return self.async_show_form(step_id="credentials", data_schema=STEP_CREDENTIALS_SCHEMA, errors=errors)
 
@@ -129,7 +131,7 @@ class InnovaConfigFlow(ConfigFlow, domain=DOMAIN):
             token = user_input[CONF_TOKEN].strip().removeprefix("Bearer ").strip()
             client = self._client(token)
             try:
-                await client.get_homes_raw()
+                homes = await client.get_homes_raw()
                 me = await client.get_me()
             except InnovaAuthError:
                 errors["base"] = "invalid_auth"
@@ -137,8 +139,19 @@ class InnovaConfigFlow(ConfigFlow, domain=DOMAIN):
                 _LOGGER.debug("Token check failed: %s", err)
                 errors["base"] = "cannot_connect"
             else:
+                if self._no_devices(homes):
+                    return self.async_abort(reason="no_devices")
                 return await self._async_finish(token, email=me.get("email"))
         return self.async_show_form(step_id="token", data_schema=STEP_TOKEN_SCHEMA, errors=errors)
+
+    def _no_devices(self, homes: list[dict[str, Any]]) -> bool:
+        """A new entry for an account with nothing on this tenant is almost always the wrong app (issue #3).
+
+        Re-authentication keeps going: the entry exists and its devices may come back.
+        """
+        if self.source == SOURCE_REAUTH:
+            return False
+        return not any(home.get("devices") for home in homes if isinstance(home, dict))
 
     async def _async_finish(self, token: str, email: str | None = None, password: str | None = None) -> ConfigFlowResult:
         claims = decode_jwt_claims(token)

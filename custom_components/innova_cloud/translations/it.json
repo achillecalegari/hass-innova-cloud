@@ -47,7 +47,8 @@
     "abort": {
       "already_configured": "Questo account e' gia' configurato",
       "reauth_successful": "Nuova autenticazione riuscita",
-      "wrong_account": "L'account e' diverso da quello con cui era stata configurata l'integrazione"
+      "wrong_account": "L'account e' diverso da quello con cui era stata configurata l'integrazione",
+      "no_devices": "Accesso riuscito, ma questo account non ha dispositivi sul cloud dell'app scelta. Rifai la configurazione scegliendo l'app che usi davvero. Le app non fatte da Solution Tech (per esempio ETHERMA eTOUCH) usano un altro cloud e non sono supportate."
     }
   },
   "entity": {
@@ -56,7 +57,8 @@
         "state_attributes": {
           "fan_mode": {
             "state": {
-              "boost": "Boost"
+              "boost": "Boost",
+              "night": "Notte"
             }
           }
         }

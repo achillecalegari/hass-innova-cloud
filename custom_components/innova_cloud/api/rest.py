@@ -88,6 +88,10 @@ class InnovaRestClient:
         self._base = base_url.rstrip("/")
         self.token = token
 
+    @property
+    def base(self) -> str:
+        return self._base
+
     # -- low level ---------------------------------------------------------------------
 
     async def _request(self, method: str, path: str, *, json_body: Any = None, auth: bool = True) -> Any:

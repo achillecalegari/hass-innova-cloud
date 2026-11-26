@@ -28,7 +28,7 @@ from homeassistant.helpers import config_validation as cv, entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .api import InnovaApiError, messages
-from .api.models import CLIMATE_KINDS, DEVICE_KIND_HEATPUMP, DeviceState, FanSpeed, HvacMode
+from .api.models import CLIMATE_KINDS, DEVICE_KIND_FANCOIL, DEVICE_KIND_HEATPUMP, DeviceState, FanSpeed, HvacMode
 from .const import ATTR_ALARMS, ATTR_ENABLED, ATTR_HOURS, SERVICE_SET_MANUAL_MODE, ATTR_CALENDAR_PRESET, ATTR_HVAC_ACTUAL, ATTR_MANUAL_UNTIL, ATTR_NODE_ID, ATTR_OPERATION_MODE
 from .coordinator import InnovaCoordinator
 from .entity import InnovaEntity, async_setup_discovery
@@ -36,6 +36,7 @@ from .entity import InnovaEntity, async_setup_discovery
 _LOGGER = logging.getLogger(__name__)
 
 FAN_BOOST = "boost"
+FAN_NIGHT = "night"
 
 _HVAC_TO_HA = {
     HvacMode.AUTO: HVACMode.HEAT_COOL,
@@ -61,6 +62,26 @@ _FAN_TO_HA = {
     FanSpeed.BOOST: FAN_BOOST,
 }
 _HA_TO_FAN = {value: key for key, value in _FAN_TO_HA.items()}
+
+# Fan coils with the M7 on-board control (Filomuro, FÄRNA) only have Auto, Night and Max: the
+# cloud still lists MID and BOOST among the capabilities but the unit ignores them (issue #2,
+# confirmed on a FÄRNA by buenaonda/innova-farna-ha). MIN is the panel's "Night" speed.
+_FANCOIL_FAN_TO_HA = {
+    FanSpeed.AUTO: FAN_AUTO,
+    FanSpeed.MIN: FAN_NIGHT,
+    FanSpeed.MAX: FAN_HIGH,
+}
+_HA_TO_FANCOIL_FAN = {value: key for key, value in _FANCOIL_FAN_TO_HA.items()}
+_HA_TO_FANCOIL_FAN[FAN_LOW] = FanSpeed.MIN  # name used up to 0.5.0, kept for existing automations
+
+# Without reported capabilities a fan coil only offers the modes its panel has.
+_FANCOIL_DEFAULT_HVAC = [HvacMode.AUTO, HvacMode.HEAT, HvacMode.COOL]
+
+
+def _fan_tables(state: DeviceState | None) -> tuple[dict[FanSpeed, str], dict[str, FanSpeed]]:
+    if state is not None and state.kind == DEVICE_KIND_FANCOIL:
+        return _FANCOIL_FAN_TO_HA, _HA_TO_FANCOIL_FAN
+    return _FAN_TO_HA, _HA_TO_FAN
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
@@ -109,7 +130,12 @@ class InnovaClimate(InnovaEntity, ClimateEntity):
     @property
     def hvac_modes(self) -> list[HVACMode]:
         state = self.device_state
-        caps = state.hvac_capabilities if state and state.hvac_capabilities else list(_HVAC_TO_HA)
+        if state and state.hvac_capabilities:
+            caps = state.hvac_capabilities
+        elif state and state.kind == DEVICE_KIND_FANCOIL:
+            caps = _FANCOIL_DEFAULT_HVAC
+        else:
+            caps = list(_HVAC_TO_HA)
         modes = [HVACMode.OFF]
         for cap in caps:
             ha_mode = _HVAC_TO_HA.get(cap)
@@ -122,8 +148,9 @@ class InnovaClimate(InnovaEntity, ClimateEntity):
         state = self.device_state
         if not state:
             return None
-        caps = state.fan_capabilities or list(_FAN_TO_HA)
-        return [_FAN_TO_HA[c] for c in caps if c in _FAN_TO_HA]
+        to_ha, _ = _fan_tables(state)
+        caps = state.fan_capabilities or list(to_ha)
+        return [to_ha[c] for c in caps if c in to_ha]
 
     @property
     def swing_modes(self) -> list[str] | None:
@@ -157,7 +184,10 @@ class InnovaClimate(InnovaEntity, ClimateEntity):
     @property
     def fan_mode(self) -> str | None:
         state = self.device_state
-        return _FAN_TO_HA.get(state.fan_speed) if state and state.fan_speed else None
+        if not state or not state.fan_speed:
+            return None
+        to_ha, _ = _fan_tables(state)
+        return to_ha.get(state.fan_speed)
 
     @property
     def swing_mode(self) -> str | None:
@@ -279,7 +309,8 @@ class InnovaClimate(InnovaEntity, ClimateEntity):
             raise HomeAssistantError(f"Innova command failed: {err}") from err
 
     async def async_set_fan_mode(self, fan_mode: str) -> None:
-        speed = _HA_TO_FAN.get(fan_mode)
+        _, from_ha = _fan_tables(self.device_state)
+        speed = from_ha.get(fan_mode)
         if speed is None:
             raise HomeAssistantError(f"Unsupported fan mode {fan_mode}")
         await self._send(fan_speed=speed)

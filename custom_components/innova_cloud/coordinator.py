@@ -88,6 +88,7 @@ class InnovaCoordinator(DataUpdateCoordinator[dict[str, DeviceState]]):
         self._reauth_started = False
         self._stream_ever_connected = False
         self._stopped = False
+        self._warned: set[str] = set()
 
     # ------------------------------------------------------------------ setup / teardown
 
@@ -161,6 +162,14 @@ class InnovaCoordinator(DataUpdateCoordinator[dict[str, DeviceState]]):
         self.devices = {dev.key: dev for home in homes for dev in home.devices}
         self._homes_loaded_at = dt_util.utcnow()
         _LOGGER.debug("Loaded %d home(s), %d device(s)", len(self.homes), len(self.devices))
+        if not self.devices and "no_devices" not in self._warned:
+            self._warned.add("no_devices")
+            _LOGGER.warning(
+                "The account has no devices on this cloud (%s). If your devices are in another app, "
+                "set the integration up again and pick that app's brand; apps not made by Solution Tech "
+                "(for example ETHERMA eTOUCH) use a different cloud and are not supported",
+                self.rest.base,
+            )
         self._sync_streams()
         self._prune_removed_devices()
 
@@ -236,6 +245,15 @@ class InnovaCoordinator(DataUpdateCoordinator[dict[str, DeviceState]]):
             if response.gateway is not None:
                 node_state.gateway = response.gateway
             data[key] = node_state
+            if node_state.kind == DEVICE_KIND_UNKNOWN and node_state.node_error is None and key not in self._warned:
+                # A device family this integration does not decode yet: no entity can be created.
+                self._warned.add(key)
+                _LOGGER.warning(
+                    "Node %s answered with a device type this integration does not know yet, so it gets no "
+                    "entities. Please open an issue on GitHub with this reply: %s",
+                    node_id,
+                    node_state.last_raw,
+                )
             if key not in self.devices:
                 _LOGGER.debug("State for node %s not listed in /homes", key)
 

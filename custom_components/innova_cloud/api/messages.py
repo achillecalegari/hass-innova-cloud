@@ -571,6 +571,10 @@ def parse_state_response(buf: bytes) -> StateResponse:
                 break
         if parsed is None:
             parsed = DeviceState(kind=DEVICE_KIND_BUTLER if node.has(5) else DEVICE_KIND_UNKNOWN)
+            if parsed.kind == DEVICE_KIND_UNKNOWN and not node.has(6):
+                # Unknown device family: always keep the node payload (not the gateway's serial / Wi-Fi name)
+                # so the warning and the diagnostics carry what is needed to add it.
+                parsed.last_raw = node.to_debug()
             if node.wires.get(6) == 0:
                 parsed.node_error = _enum(NodeError, node.int(6))
                 parsed.online = parsed.node_error != NodeError.OFFLINE

@@ -77,7 +77,7 @@ pettiness, the time and the money to make a test case out of it.
 
 | Entity | Notes |
 | --- | --- |
-| `climate.<name>` | Modes off / auto (heat_cool) / heat / cool / dry / fan_only, fan auto / low / medium / high / boost (only the ones the unit reports), target temperature with the unit's min/max/step, swing on/off, current temperature and humidity. Attributes: operation mode (schedule / manual / antifreeze), active calendar preset, actual HVAC mode, alarm bitmask. |
+| `climate.<name>` | Modes off / auto (heat_cool) / heat / cool / dry / fan_only, fan auto / low / medium / high / boost (only the ones the unit reports; fan coils with the M7 control, such as Filomuro and FÄRNA, get auto / night / high, the speeds of their panel), target temperature with the unit's min/max/step, swing on/off, current temperature and humidity. Attributes: operation mode (schedule / manual / antifreeze), active calendar preset, actual HVAC mode, alarm bitmask. |
 | `sensor.<name>_room_temperature` | Room temperature (°C). |
 | `sensor.<name>_humidity` | Only when the unit has a humidity sensor. |
 | `sensor.<name>_operation_mode` | schedule / manual / antifreeze (diagnostic). |
@@ -181,6 +181,9 @@ Developed on two Innova units (vendor 1, product 1, hw 1, serials `IN…`) paire
 also checked against captures of three other AC units published by other projects. Fan coils and thermostats
 share the same message layout and should work; heat pump support is built from the schema and untested.
 The same cloud platform is white‑labelled for other brands: see *Other brands* above.
+Not supported: devices paired with apps that are not made by Solution Tech, such as **ETHERMA eTOUCH**
+(the eTOUCH PRO floor heating thermostats): they use a different cloud. If the setup says the account has
+no devices, check which app your devices are in.
 
 ## Disclaimer
 

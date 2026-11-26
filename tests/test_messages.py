@@ -165,6 +165,19 @@ def test_parse_state_response_node_error():
     assert parsed.nodes[0].online is False
 
 
+def test_parse_state_response_unknown_family_keeps_node_payload():
+    # A device family the schema does not know (oneof field 9): no entity, but the payload is kept for the warning.
+    node = Writer().message(9, Writer().varint(1, 1).float32(2, 21.5))
+    entry = Writer().varint(1, 0).message(2, node)
+    gateway = Writer().string(3, "SERIAL123")
+    state = Writer().message(1, gateway).message(2, entry)
+    raw = Writer().message(2, Writer().message(1, Writer().message(1, state))).finish()
+    parsed = messages.parse_state_response(raw)
+    node_state = parsed.nodes[0]
+    assert node_state.kind == "unknown" and node_state.node_error is None
+    assert node_state.last_raw and "SERIAL123" not in repr(node_state.last_raw)
+
+
 def test_parse_state_response_empty():
     parsed = messages.parse_state_response(b"")
     assert parsed.nodes == {} and parsed.error_code is None
