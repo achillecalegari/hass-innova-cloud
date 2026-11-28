@@ -190,6 +190,18 @@ def request_set_antifreeze(node_id: int, enabled: bool, threshold: float | None 
 # --------------------------------------------------------------------------------------
 
 
+def _temperature(value: float | None) -> float | None:
+    """Unwrap sub-zero readings.
+
+    Below 0 °C the cloud reports temperatures as an unsigned 16-bit value in tenths of a degree, cast to float:
+    -0.1 °C arrives as 6553.5, -0.2 °C as 6553.4, and so on. Nothing real gets anywhere near 3000 °C, so anything
+    above that is taken as wrapped and shifted back by 65536 tenths.
+    """
+    if value is None or value <= 3000:
+        return value
+    return round(value - 6553.6, 1)
+
+
 def _enum(cls, value: int | None):
     if value is None:
         return None
@@ -300,7 +312,7 @@ def _parse_common_state(msg: Message, kind: str) -> DeviceState:
         state.fan_capabilities = [f for f in (_enum(FanSpeed, v) for v in fan.varints(2)) if f]
     state.flap_swing = msg.bool(6)
     state.has_flap_swing = msg.has(6)
-    state.air_temperature = msg.float(7)
+    state.air_temperature = _temperature(msg.float(7))
     state.air_humidity = msg.float(8)
     state.has_humidity = msg.has(8)
     state.last_raw = _debug(msg)
@@ -312,7 +324,7 @@ def _hp_dhw(msg: Message | None) -> HeatPumpDhw | None:
     DhwBoost { State state=1 { uint32 duration_minutes=1; Timestamp activated_at=2 }; Capabilities capabilities=2 }"""
     if msg is None:
         return None
-    dhw = HeatPumpDhw(power=msg.bool(1), setpoint=msg.float(2), current_setpoint=msg.float(3), water_temperature=msg.float(4))
+    dhw = HeatPumpDhw(power=msg.bool(1), setpoint=msg.float(2), current_setpoint=msg.float(3), water_temperature=_temperature(msg.float(4)))
     boost = msg.message(5)
     if boost is not None:
         state = boost.message(1)
@@ -328,7 +340,7 @@ def _hp_zone(msg: Message | None) -> HeatPumpZone | None:
     """heatpump.State.Zone { bool power=1; float heating_setpoint=2; float cooling_setpoint=3; float current_setpoint=4; float water_temperature=5 }"""
     if msg is None:
         return None
-    return HeatPumpZone(power=msg.bool(1), heating_setpoint=msg.float(2), cooling_setpoint=msg.float(3), current_setpoint=msg.float(4), water_temperature=msg.float(5))
+    return HeatPumpZone(power=msg.bool(1), heating_setpoint=msg.float(2), cooling_setpoint=msg.float(3), current_setpoint=msg.float(4), water_temperature=_temperature(msg.float(5)))
 
 
 def _hp_common(msg: Message, hp: HeatPumpState) -> None:
@@ -338,7 +350,7 @@ def _hp_common(msg: Message, hp: HeatPumpState) -> None:
     hp.heating_curve = _enum(ClimaticCurve, msg.int(5))
     hp.cooling_curve = _enum(ClimaticCurve, msg.int(6))
     hp.active_load = _enum(LoadType, msg.int(8))
-    hp.outdoor_temperature = msg.float(9)
+    hp.outdoor_temperature = _temperature(msg.float(9))
     hp.water_pressure = msg.float(10)
     hp.load_priority = _enum(LoadType, msg.int(12))
 
@@ -408,7 +420,7 @@ def _parse_common_event(msg: Message, kind: str) -> DeviceState:
     patch.alarms = msg.int(1)
     patch.power = msg.bool(2)
     patch.setpoint = _setpoint(msg.message(3))
-    patch.air_temperature = msg.float(4)
+    patch.air_temperature = _temperature(msg.float(4))
     patch.hvac_mode = _enum(HvacMode, msg.int(5))
     patch.fan_speed = _enum(FanSpeed, msg.int(6))
     patch.flap_swing = msg.bool(7)

@@ -348,3 +348,17 @@ def test_alarm_descriptions():
 def test_system_reboot_request():
     raw = messages.request_system_reboot()
     assert Message(raw).message(1).has(1)
+
+
+def test_sub_zero_temperatures_are_unwrapped():
+    # Below 0 °C the cloud sends unsigned tenths as a float: -0.1 °C -> 6553.5, -0.2 °C -> 6553.4 (seen on a real unit).
+    for wire, expected in ((6553.5, -0.1), (6553.4, -0.2), (6552.0, -1.6), (0.0, 0.0), (21.5, 21.5)):
+        ac_event = Writer().float32(4, wire)
+        dev_event = Writer().message(3, Writer().message(2, ac_event))
+        device = Writer().bytes(1, mac_to_bytes(MAC)).varint(2, 0).message(3, dev_event)
+        event = messages.parse_event(Writer().message(1, device).finish())
+        assert abs(event.patch.air_temperature - expected) < 1e-5, (wire, event.patch.air_temperature)
+
+    state = Writer().bool(2, True).float32(7, 6553.0).finish()
+    node = messages.parse_state_response(_state_response_bytes(0, state)).nodes[0]
+    assert abs(node.air_temperature - (-0.6)) < 1e-5
